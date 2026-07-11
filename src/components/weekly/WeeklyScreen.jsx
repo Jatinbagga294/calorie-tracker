@@ -1,3 +1,4 @@
+import { Lightbulb } from 'lucide-react'
 import TrendChart from './TrendChart'
 import { getDailyLog, getProfile } from '../../lib/storage'
 import { last7DayKeys, parseDateKey } from '../../lib/dateUtils'
@@ -103,7 +104,9 @@ export default function WeeklyScreen() {
 
       {suggestions.length > 0 && (
         <section className="rounded-2xl border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-900/20 p-4 flex flex-col gap-2">
-          <h2 className="font-medium text-brand-800 dark:text-brand-300 text-sm">Suggestions</h2>
+          <h2 className="font-medium text-brand-800 dark:text-brand-300 text-sm flex items-center gap-2">
+            <Lightbulb size={15} aria-hidden /> Suggestions
+          </h2>
           {suggestions.map((s) => (
             <p key={s.type} className="text-sm text-slate-700 dark:text-slate-300">
               {s.message}

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { dateKey, parseDateKey, formatMonthYear, todayKey } from '../../lib/dateUtils'
 import { getAllDailyLogs } from '../../lib/storage'
 
@@ -32,12 +33,22 @@ export default function CalendarView({ selectedDate, onSelectDate }) {
   return (
     <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
       <div className="flex items-center justify-between mb-3">
-        <button type="button" onClick={() => changeMonth(-1)} className="px-3 py-1 text-slate-500 dark:text-slate-400">
-          ‹
+        <button
+          type="button"
+          onClick={() => changeMonth(-1)}
+          aria-label="Previous month"
+          className="px-3 py-1 text-slate-500 dark:text-slate-400"
+        >
+          <ChevronLeft size={16} />
         </button>
         <h3 className="font-medium text-slate-800 dark:text-slate-100">{formatMonthYear(dateKey(monthCursor))}</h3>
-        <button type="button" onClick={() => changeMonth(1)} className="px-3 py-1 text-slate-500 dark:text-slate-400">
-          ›
+        <button
+          type="button"
+          onClick={() => changeMonth(1)}
+          aria-label="Next month"
+          className="px-3 py-1 text-slate-500 dark:text-slate-400"
+        >
+          <ChevronRight size={16} />
         </button>
       </div>
 

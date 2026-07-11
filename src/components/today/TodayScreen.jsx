@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
+import { ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react'
 import QuickAddFood from './QuickAddFood'
 import QuickAddExercise from './QuickAddExercise'
 import WaterTracker from './WaterTracker'
 import SummaryCard from './SummaryCard'
+import CoachCard from './CoachCard'
 import LogList from './LogList'
 import LoggedToast from './LoggedToast'
 import EditEntryModal from './EditEntryModal'
@@ -16,6 +18,7 @@ import {
   deleteFoodEntry,
   deleteExerciseEntry,
   addWater,
+  setWater,
   getProfile,
 } from '../../lib/storage'
 import { todayKey, addDays, formatDisplayDate, last7DayKeys } from '../../lib/dateUtils'
@@ -84,6 +87,11 @@ export default function TodayScreen() {
     refresh()
   }
 
+  function handleSetWater(ml) {
+    setWater(selectedDate, ml)
+    refresh()
+  }
+
   function handleSelectDate(key) {
     setSelectedDate(key)
     setViewMode('list')
@@ -108,13 +116,26 @@ export default function TodayScreen() {
 
       {toast && <LoggedToast toast={toast} onEdit={handleEditFromToast} onDismiss={() => setToast(null)} />}
 
-      {isToday && <WaterTracker waterMl={log.waterMl} targetMl={profile.targetWaterMl} onAdd={handleAddWater} />}
+      {isToday && (
+        <WaterTracker
+          waterMl={log.waterMl}
+          targetMl={profile.targetWaterMl}
+          onAdd={handleAddWater}
+          onSet={handleSetWater}
+        />
+      )}
 
       <SummaryCard totals={log.totals} targets={profile} />
 
+      {isToday && (
+        <CoachCard totals={log.totals} waterMl={log.waterMl} profile={profile} trailingDays={trailingDays} />
+      )}
+
       {suggestions.length > 0 && (
         <div className="rounded-2xl border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-900/20 p-4 flex flex-col gap-2">
-          <h3 className="font-medium text-brand-800 dark:text-brand-300 text-sm">Suggestions</h3>
+          <h3 className="font-medium text-brand-800 dark:text-brand-300 text-sm flex items-center gap-2">
+            <Lightbulb size={15} aria-hidden /> Suggestions
+          </h3>
           {suggestions.map((s) => (
             <p key={s.type} className="text-sm text-slate-700 dark:text-slate-300">
               {s.message}
@@ -130,9 +151,10 @@ export default function TodayScreen() {
               <button
                 type="button"
                 onClick={() => setSelectedDate((d) => addDays(d, -1))}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                aria-label="Previous day"
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center"
               >
-                ‹
+                <ChevronLeft size={16} />
               </button>
               <h2 className="font-semibold text-slate-800 dark:text-slate-100 w-32 text-center">
                 {isToday ? 'Today' : formatDisplayDate(selectedDate)}
@@ -141,9 +163,10 @@ export default function TodayScreen() {
                 type="button"
                 onClick={() => setSelectedDate((d) => addDays(d, 1))}
                 disabled={isToday}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 disabled:opacity-30"
+                aria-label="Next day"
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 disabled:opacity-30 flex items-center justify-center"
               >
-                ›
+                <ChevronRight size={16} />
               </button>
             </>
           )}
