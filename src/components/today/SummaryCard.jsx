@@ -4,19 +4,23 @@ export default function SummaryCard({ totals, targets }) {
   const adjustedAllowance = targets.targetCalories + totals.caloriesOut
   const diff = adjustedAllowance - totals.caloriesIn
   const isUnder = diff >= 0
-  // Within 50 cal of the allowance counts as landing on target
-  const onTarget = Math.abs(diff) <= 50
-  const statusText = onTarget
-    ? `On target — ${Math.round(Math.abs(diff))} cal ${isUnder ? 'under' : 'over'}`
-    : isUnder
-      ? `${Math.round(Math.abs(diff))} cal under target`
-      : `${Math.round(Math.abs(diff))} cal over target`
+  const amount = Math.round(Math.abs(diff))
 
-  const statusClass = onTarget
+  // Goal-aware: a deficit is good when losing, bad when gaining; maintain wants to land near target.
+  const goal = targets.goal
+  const onPlan =
+    goal === 'lose' ? isUnder : goal === 'gain' ? !isUnder : Math.abs(diff) <= 50
+
+  const statusText =
+    goal === 'maintain' && onPlan
+      ? `On target — ${amount} cal ${isUnder ? 'under' : 'over'}`
+      : `${amount} cal ${isUnder ? 'under' : 'over'} target`
+
+  const statusClass = onPlan
     ? 'bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300'
-    : isUnder
-      ? 'bg-red-50 dark:bg-red-900/25 text-red-700 dark:text-red-300'
-      : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+    : goal === 'maintain'
+      ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+      : 'bg-red-50 dark:bg-red-900/25 text-red-700 dark:text-red-300'
 
   return (
     <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
