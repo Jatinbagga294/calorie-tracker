@@ -1,8 +1,6 @@
-import { Lightbulb } from 'lucide-react'
 import TrendChart from './TrendChart'
 import { getDailyLog, getProfile } from '../../lib/storage'
 import { last7DayKeys, parseDateKey } from '../../lib/dateUtils'
-import { generateSuggestions } from '../../lib/suggestions'
 
 function StatTile({ label, value, sub }) {
   return (
@@ -46,11 +44,6 @@ export default function WeeklyScreen() {
 
   const exerciseDays = days.filter((d) => d.exerciseEntries.length > 0).length
   const totalExerciseMin = sum((d) => d.exerciseEntries.reduce((s, e) => s + (e.durationMin || 0), 0))
-
-  const suggestions = generateSuggestions(
-    days.map((d) => ({ dateKey: d.dateKey, totals: d.totals, waterMl: d.waterMl })),
-    profile,
-  )
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-24 flex flex-col gap-5">
@@ -101,19 +94,6 @@ export default function WeeklyScreen() {
         <h2 className="font-medium text-slate-700 dark:text-slate-300 mb-3">Water</h2>
         <StatTile label="Daily average" value={`${(avgWater / 1000).toFixed(1)}L`} sub={`goal ${(profile.targetWaterMl / 1000).toFixed(1)}L`} />
       </section>
-
-      {suggestions.length > 0 && (
-        <section className="rounded-2xl border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-900/20 p-4 flex flex-col gap-2">
-          <h2 className="font-medium text-brand-800 dark:text-brand-300 text-sm flex items-center gap-2">
-            <Lightbulb size={15} aria-hidden /> Suggestions
-          </h2>
-          {suggestions.map((s) => (
-            <p key={s.type} className="text-sm text-slate-700 dark:text-slate-300">
-              {s.message}
-            </p>
-          ))}
-        </section>
-      )}
 
       {trackedDays.length === 0 && (
         <p className="text-center text-sm text-slate-400 dark:text-slate-500">

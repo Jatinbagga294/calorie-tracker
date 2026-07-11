@@ -11,10 +11,15 @@ export default function SummaryCard({ totals, targets }) {
   const onPlan =
     goal === 'lose' ? isUnder : goal === 'gain' ? !isUnder : Math.abs(diff) <= 50
 
+  // Language matches the goal: a bulk counts up to a goal, a cut guards a budget.
   const statusText =
-    goal === 'maintain' && onPlan
-      ? `On target — ${amount} cal ${isUnder ? 'under' : 'over'}`
-      : `${amount} cal ${isUnder ? 'under' : 'over'} target`
+    goal === 'gain'
+      ? isUnder
+        ? `${amount} cal to go`
+        : `Goal hit — ${amount} cal past target`
+      : goal === 'maintain' && onPlan
+        ? `On target — ${amount} cal ${isUnder ? 'under' : 'over'}`
+        : `${amount} cal ${isUnder ? 'under' : 'over'} target`
 
   const statusClass = onPlan
     ? 'bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300'
@@ -42,7 +47,7 @@ export default function SummaryCard({ totals, targets }) {
       <div className={`text-center rounded-xl py-2 mb-4 font-medium text-sm ${statusClass}`}>
         {statusText}
         <span className="block text-xs font-normal opacity-80 mt-0.5">
-          {Math.round(targets.targetCalories)} target + {Math.round(totals.caloriesOut)} burned = {Math.round(adjustedAllowance)} allowance
+          {Math.round(targets.targetCalories)} target + {Math.round(totals.caloriesOut)} burned = {Math.round(adjustedAllowance)} today's goal
         </span>
       </div>
 

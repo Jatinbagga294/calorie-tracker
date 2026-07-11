@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import QuickAddFood from './QuickAddFood'
 import QuickAddExercise from './QuickAddExercise'
 import WaterTracker from './WaterTracker'
 import SummaryCard from './SummaryCard'
 import InsightsCard from './InsightsCard'
+import AiSuggestionsCard from './AiSuggestionsCard'
 import LogList from './LogList'
 import LoggedToast from './LoggedToast'
 import EditEntryModal from './EditEntryModal'
@@ -22,7 +23,6 @@ import {
   getProfile,
 } from '../../lib/storage'
 import { todayKey, addDays, formatDisplayDate, last7DayKeys } from '../../lib/dateUtils'
-import { generateSuggestions } from '../../lib/suggestions'
 
 const TOAST_TIMEOUT_MS = 8000
 
@@ -103,7 +103,6 @@ export default function TodayScreen() {
     const day = getDailyLog(key)
     return { dateKey: key, totals: day.totals, waterMl: day.waterMl }
   })
-  const suggestions = generateSuggestions(trailingDays, profile)
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-24 flex flex-col gap-5">
@@ -128,20 +127,10 @@ export default function TodayScreen() {
       <SummaryCard totals={log.totals} targets={profile} />
 
       {isToday && (
-        <InsightsCard totals={log.totals} waterMl={log.waterMl} profile={profile} trailingDays={trailingDays} />
-      )}
-
-      {suggestions.length > 0 && (
-        <div className="rounded-2xl border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-900/20 p-4 flex flex-col gap-2">
-          <h3 className="font-medium text-brand-800 dark:text-brand-300 text-sm flex items-center gap-2">
-            <Lightbulb size={15} aria-hidden /> Suggestions
-          </h3>
-          {suggestions.map((s) => (
-            <p key={s.type} className="text-sm text-slate-700 dark:text-slate-300">
-              {s.message}
-            </p>
-          ))}
-        </div>
+        <>
+          <InsightsCard totals={log.totals} waterMl={log.waterMl} profile={profile} trailingDays={trailingDays} />
+          <AiSuggestionsCard totals={log.totals} waterMl={log.waterMl} profile={profile} trailingDays={trailingDays} />
+        </>
       )}
 
       <div className="flex items-center justify-between">

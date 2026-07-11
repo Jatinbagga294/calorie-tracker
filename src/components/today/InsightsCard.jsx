@@ -46,9 +46,17 @@ export default function InsightsCard({ totals, waterMl, profile, trailingDays })
 
       <div className="grid grid-cols-3 gap-2 mb-3">
         <Chip
-          label={left.calories >= 0 ? 'cal left' : 'cal over'}
+          label={
+            left.calories >= 0
+              ? profile.goal === 'gain'
+                ? 'cal to go'
+                : 'cal left'
+              : profile.goal === 'gain'
+                ? 'cal past goal'
+                : 'cal over'
+          }
           value={Math.abs(left.calories)}
-          over={left.calories < 0}
+          over={left.calories < 0 && profile.goal !== 'gain'}
         />
         <Chip
           label={left.protein >= 0 ? 'g protein left' : 'g protein extra'}

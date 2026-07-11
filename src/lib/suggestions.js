@@ -7,11 +7,12 @@ function average(nums) {
   return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0
 }
 
-// days: array of { dateKey, totals: {caloriesIn, caloriesOut, caloriesNet, protein, carbs, fat, fiber}, waterMl }
-// ordered oldest -> newest, typically the trailing 3-7 days.
+// Deterministic, goal-aware fallback used when the AI suggestion call is unavailable.
+// days: array of { dateKey, totals, waterMl }, oldest -> newest, trailing 3-7 days.
 export function generateSuggestions(days, targets) {
   if (!targets) return []
 
+  const goal = targets.goal
   const suggestions = []
   const trackedDays = days.filter((d) => d.totals.caloriesIn > 0)
 
@@ -25,13 +26,25 @@ export function generateSuggestions(days, targets) {
       })
     }
 
-    const overCalorieDays = trackedDays.filter((d) => d.totals.caloriesIn > targets.targetCalories + d.totals.caloriesOut)
-    if (overCalorieDays.length / trackedDays.length >= 0.6) {
-      suggestions.push({
-        type: 'calories_over',
-        severity: 'warning',
-        message: `You've been over your calorie target ${overCalorieDays.length} of the last ${trackedDays.length} days you logged.`,
-      })
+    // Calorie adherence flag depends on the goal: a surplus hurts a cut, a shortfall hurts a bulk.
+    if (goal === 'gain') {
+      const underDays = trackedDays.filter((d) => d.totals.caloriesIn < targets.targetCalories)
+      if (underDays.length / trackedDays.length >= 0.6) {
+        suggestions.push({
+          type: 'calories_short',
+          severity: 'warning',
+          message: `You ate below your calorie target ${underDays.length} of the last ${trackedDays.length} logged days — hard to gain without a consistent surplus.`,
+        })
+      }
+    } else {
+      const overDays = trackedDays.filter((d) => d.totals.caloriesIn > targets.targetCalories + d.totals.caloriesOut)
+      if (overDays.length / trackedDays.length >= 0.6) {
+        suggestions.push({
+          type: 'calories_over',
+          severity: 'warning',
+          message: `You've been over your calorie target ${overDays.length} of the last ${trackedDays.length} days you logged.`,
+        })
+      }
     }
 
     const avgFiber = average(trackedDays.map((d) => d.totals.fiber))
@@ -44,19 +57,21 @@ export function generateSuggestions(days, targets) {
     }
   }
 
-  // Exercise gap: nothing burned in the whole window
+  // Exercise gap, framed for the goal: training builds muscle on a bulk, burns on a cut.
   if (days.length >= MIN_TRACKED_DAYS && trackedDays.length >= 1) {
     const exerciseDays = days.filter((d) => d.totals.caloriesOut > 0).length
     if (exerciseDays === 0) {
       suggestions.push({
         type: 'no_exercise',
         severity: 'info',
-        message: `No exercise logged in the last ${days.length} days. A 30-min brisk walk burns roughly 130-160 cal.`,
+        message:
+          goal === 'gain'
+            ? `No training logged in the last ${days.length} days. Strength work 3x/week turns your surplus into muscle instead of fat.`
+            : `No exercise logged in the last ${days.length} days. A 30-min brisk walk burns roughly 130-160 cal.`,
       })
     }
   }
 
-  // Logging consistency: estimates get sharper with more logged days
   if (days.length >= 7 && trackedDays.length > 0 && trackedDays.length < 5) {
     suggestions.push({
       type: 'log_consistency',

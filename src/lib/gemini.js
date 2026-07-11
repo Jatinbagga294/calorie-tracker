@@ -90,6 +90,42 @@ async function callGeminiJSON(systemPrompt, userText, schema) {
   }
 }
 
+const SUGGESTIONS_SCHEMA = {
+  type: 'object',
+  properties: {
+    suggestions: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['suggestions'],
+}
+
+const SUGGESTIONS_SYSTEM_PROMPT = `You are a sharp, numbers-driven fitness coach analyzing a user's
+calorie-tracking data. You receive JSON: their goal (lose/maintain/gain weight), target rate,
+body stats, daily targets, today's intake/burn/remaining, 7-day averages, projected weight pace,
+protein hit rate, and exercise frequency.
+
+Return 2-4 suggestions. Hard rules:
+- Every suggestion must be grounded in at least one concrete number from THEIR data (grams,
+  calories, days, kg) — no generic advice that would fit any user.
+- Apply common sense for the goal. GAIN: never recommend burning calories or eating less; focus
+  on surplus size, protein per kg bodyweight, strength training, calorie-dense foods with
+  portions. LOSE: deficit adherence, protein retention, satiety, activity. MAINTAIN: consistency
+  and macro balance.
+- Give the actionable next step, not observations they can already read on their dashboard.
+  When closing a macro/calorie gap, name specific foods with rough portions (mix South Asian
+  staples and common Western options naturally).
+- No hydration reminders, no platitudes, no medical advice, no emojis.
+- Each suggestion under 25 words.`
+
+// Gets 2-4 personalized, goal-aware suggestions grounded in the user's own numbers.
+export async function getSmartSuggestions(context) {
+  const { suggestions } = await callGeminiJSON(
+    SUGGESTIONS_SYSTEM_PROMPT,
+    JSON.stringify(context),
+    SUGGESTIONS_SCHEMA,
+  )
+  return suggestions.filter((s) => typeof s === 'string' && s.trim()).slice(0, 4)
+}
+
 function round1(n) {
   return Math.round(n * 10) / 10
 }
