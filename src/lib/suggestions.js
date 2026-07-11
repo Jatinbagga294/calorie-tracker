@@ -44,15 +44,25 @@ export function generateSuggestions(days, targets) {
     }
   }
 
-  if (days.length >= MIN_TRACKED_DAYS && targets.targetWaterMl > 0) {
-    const avgWater = average(days.map((d) => d.waterMl || 0))
-    if (avgWater < targets.targetWaterMl * 0.8) {
+  // Exercise gap: nothing burned in the whole window
+  if (days.length >= MIN_TRACKED_DAYS && trackedDays.length >= 1) {
+    const exerciseDays = days.filter((d) => d.totals.caloriesOut > 0).length
+    if (exerciseDays === 0) {
       suggestions.push({
-        type: 'water_low',
+        type: 'no_exercise',
         severity: 'info',
-        message: `You're averaging ${(avgWater / 1000).toFixed(1)}L of water a day, under your ${(targets.targetWaterMl / 1000).toFixed(1)}L goal. Keep a bottle nearby as a reminder.`,
+        message: `No exercise logged in the last ${days.length} days. A 30-min brisk walk burns roughly 130-160 cal.`,
       })
     }
+  }
+
+  // Logging consistency: estimates get sharper with more logged days
+  if (days.length >= 7 && trackedDays.length > 0 && trackedDays.length < 5) {
+    suggestions.push({
+      type: 'log_consistency',
+      severity: 'info',
+      message: `You logged food on ${trackedDays.length} of the last 7 days. Your averages and pace projection get more accurate with every logged day.`,
+    })
   }
 
   return suggestions

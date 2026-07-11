@@ -4,7 +4,7 @@ import QuickAddFood from './QuickAddFood'
 import QuickAddExercise from './QuickAddExercise'
 import WaterTracker from './WaterTracker'
 import SummaryCard from './SummaryCard'
-import CoachCard from './CoachCard'
+import InsightsCard from './InsightsCard'
 import LogList from './LogList'
 import LoggedToast from './LoggedToast'
 import EditEntryModal from './EditEntryModal'
@@ -128,7 +128,7 @@ export default function TodayScreen() {
       <SummaryCard totals={log.totals} targets={profile} />
 
       {isToday && (
-        <CoachCard totals={log.totals} waterMl={log.waterMl} profile={profile} trailingDays={trailingDays} />
+        <InsightsCard totals={log.totals} waterMl={log.waterMl} profile={profile} trailingDays={trailingDays} />
       )}
 
       {suggestions.length > 0 && (

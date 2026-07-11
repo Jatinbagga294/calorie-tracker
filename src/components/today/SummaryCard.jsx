@@ -4,9 +4,19 @@ export default function SummaryCard({ totals, targets }) {
   const adjustedAllowance = targets.targetCalories + totals.caloriesOut
   const diff = adjustedAllowance - totals.caloriesIn
   const isUnder = diff >= 0
-  const statusText = isUnder
-    ? `${Math.round(Math.abs(diff))} cal under target`
-    : `${Math.round(Math.abs(diff))} cal over target`
+  // Within 50 cal of the allowance counts as landing on target
+  const onTarget = Math.abs(diff) <= 50
+  const statusText = onTarget
+    ? `On target — ${Math.round(Math.abs(diff))} cal ${isUnder ? 'under' : 'over'}`
+    : isUnder
+      ? `${Math.round(Math.abs(diff))} cal under target`
+      : `${Math.round(Math.abs(diff))} cal over target`
+
+  const statusClass = onTarget
+    ? 'bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300'
+    : isUnder
+      ? 'bg-red-50 dark:bg-red-900/25 text-red-700 dark:text-red-300'
+      : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
 
   return (
     <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
@@ -25,13 +35,7 @@ export default function SummaryCard({ totals, targets }) {
         </div>
       </div>
 
-      <div
-        className={`text-center rounded-xl py-2 mb-4 font-medium text-sm ${
-          isUnder
-            ? 'bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300'
-            : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-        }`}
-      >
+      <div className={`text-center rounded-xl py-2 mb-4 font-medium text-sm ${statusClass}`}>
         {statusText}
         <span className="block text-xs font-normal opacity-80 mt-0.5">
           {Math.round(targets.targetCalories)} target + {Math.round(totals.caloriesOut)} burned = {Math.round(adjustedAllowance)} allowance

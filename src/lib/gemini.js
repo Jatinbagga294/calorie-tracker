@@ -56,30 +56,6 @@ it into distinct activities and estimate calories burned for an average adult, u
 duration when given (assume a moderate, typical duration if none is given, e.g. 30 min). Return
 durationMin in minutes and caloriesBurned in kcal as best-estimate numbers.`
 
-const COACH_SCHEMA = {
-  type: 'object',
-  properties: {
-    tips: { type: 'array', items: { type: 'string' } },
-  },
-  required: ['tips'],
-}
-
-const COACH_SYSTEM_PROMPT = `You are a concise, practical nutrition coach inside a calorie-tracking app.
-You receive JSON with the user's goal, daily targets, what they've eaten/burned so far today
-(with remaining amounts), their water intake, the local hour of day, and recent 7-day averages.
-Return 2-4 short tips (each under 22 words). Prioritize: (1) specific foods with rough portions
-to close today's remaining protein/fiber/calorie gaps — suggest a natural mix of South Asian
-staples (dal, paneer, roti, curd, chana) and common Western options; (2) a quick read on whether
-their recent pace matches their goal; (3) water if clearly behind. Be direct and friendly, no
-lectures, no medical disclaimers, no emojis. If it's late in the day and calories are nearly
-spent, suggest lighter options.`
-
-// Gets 2-4 personalized coaching tips. context: plain object with targets/intake/pace data.
-export async function getCoachAdvice(context) {
-  const { tips } = await callGeminiJSON(COACH_SYSTEM_PROMPT, JSON.stringify(context), COACH_SCHEMA)
-  return tips.filter((t) => typeof t === 'string' && t.trim()).slice(0, 4)
-}
-
 async function callGeminiJSON(systemPrompt, userText, schema) {
   if (!API_KEY) {
     throw new Error('Missing VITE_GEMINI_API_KEY. Add it to your .env file to enable AI parsing.')

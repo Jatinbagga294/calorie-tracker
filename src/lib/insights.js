@@ -34,14 +34,15 @@ export function paceProjection(days, profile) {
 
 export function paceText(pace, goal) {
   if (!pace.ready) {
-    return `Log ${pace.daysNeeded} more day${pace.daysNeeded > 1 ? 's' : ''} to see your projected pace.`
+    return `Log ${pace.daysNeeded} more day${pace.daysNeeded > 1 ? 's' : ''} to unlock your projected pace.`
   }
   const kg = Math.abs(pace.kgPerWeek)
-  const rounded = kg.toFixed(kg < 0.15 ? 2 : 1)
+  const weekly = kg.toFixed(kg < 0.15 ? 2 : 1)
+  const monthly = (kg * 4.345).toFixed(1)
 
   let trend
-  if (pace.kgPerWeek < -0.05) trend = `losing ~${rounded} kg/week`
-  else if (pace.kgPerWeek > 0.05) trend = `gaining ~${rounded} kg/week`
+  if (pace.kgPerWeek < -0.05) trend = `losing ~${weekly} kg/week (~${monthly} kg/month)`
+  else if (pace.kgPerWeek > 0.05) trend = `gaining ~${weekly} kg/week (~${monthly} kg/month)`
   else trend = 'holding steady'
 
   const aligned =
@@ -49,5 +50,23 @@ export function paceText(pace, goal) {
     (goal === 'gain' && pace.kgPerWeek > 0.05) ||
     (goal === 'maintain' && Math.abs(pace.kgPerWeek) <= 0.05)
 
-  return `At your ${pace.trackedDays}-day pace you're ${trend} — ${aligned ? 'on track for your goal' : 'not matching your goal yet'}.`
+  return `${pace.trackedDays}-day pace: ${trend} — ${aligned ? 'on track for your goal' : 'not matching your goal yet'}.`
+}
+
+// Quantified 7-day analytics over logged days only.
+export function weeklyAnalytics(days, profile) {
+  const tracked = days.filter((d) => d.totals.caloriesIn > 0)
+  if (tracked.length === 0) return { trackedDays: 0 }
+
+  const avg = (fn) => Math.round(tracked.reduce((sum, d) => sum + fn(d), 0) / tracked.length)
+  const avgNet = avg((d) => d.totals.caloriesNet)
+
+  return {
+    trackedDays: tracked.length,
+    avgIn: avg((d) => d.totals.caloriesIn),
+    avgOut: avg((d) => d.totals.caloriesOut),
+    avgNet,
+    netVsTarget: avgNet - profile.targetCalories,
+    proteinHitDays: tracked.filter((d) => d.totals.protein >= profile.targetProtein).length,
+  }
 }
