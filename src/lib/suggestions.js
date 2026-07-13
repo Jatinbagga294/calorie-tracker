@@ -19,7 +19,7 @@ export function generateSuggestions(days, targets) {
       suggestions.push({
         type: 'protein_low',
         severity: 'info',
-        message: `Protein has averaged ${Math.round(avgProtein)}g/day — ${Math.round(targets.targetProtein - avgProtein)}g short of your ${targets.targetProtein}g target.`,
+        message: `Protein has averaged ${Math.round(avgProtein)}g/day, ${Math.round(targets.targetProtein - avgProtein)}g short of your ${targets.targetProtein}g target.`,
       })
     }
 
@@ -30,7 +30,7 @@ export function generateSuggestions(days, targets) {
         suggestions.push({
           type: 'calories_short',
           severity: 'warning',
-          message: `You ate below your calorie target ${underDays.length} of the last ${trackedDays.length} logged days — hard to gain without a consistent surplus.`,
+          message: `You ate below your calorie target ${underDays.length} of the last ${trackedDays.length} logged days. Hard to gain without a consistent surplus.`,
         })
       }
     } else {
@@ -49,7 +49,7 @@ export function generateSuggestions(days, targets) {
       suggestions.push({
         type: 'fiber_low',
         severity: 'info',
-        message: `Fiber has averaged ${Math.round(avgFiber)}g/day — ${Math.round(targets.targetFiber - avgFiber)}g below your ${targets.targetFiber}g target.`,
+        message: `Fiber has averaged ${Math.round(avgFiber)}g/day, ${Math.round(targets.targetFiber - avgFiber)}g below your ${targets.targetFiber}g target.`,
       })
     }
   }

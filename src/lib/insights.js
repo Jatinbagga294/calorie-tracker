@@ -49,7 +49,7 @@ export function paceText(pace, goal) {
     (goal === 'gain' && pace.kgPerWeek > 0.05) ||
     (goal === 'maintain' && Math.abs(pace.kgPerWeek) <= 0.05)
 
-  return `${pace.trackedDays}-day pace: ${trend} — ${aligned ? 'on track for your goal' : 'not matching your goal yet'}.`
+  return `${pace.trackedDays}-day pace: ${trend}, ${aligned ? 'on track for your goal' : 'not matching your goal yet'}.`
 }
 
 // Quantified 7-day analytics over logged days only.

@@ -103,7 +103,7 @@ export default function ChatScreen() {
       setMessages(withReply)
       saveHistory(withReply)
     } catch (err) {
-      setError(err.message || 'Could not reach the AI service.')
+      setError(err.message || 'Could not send. Check your connection and try again.')
     } finally {
       setLoading(false)
     }
@@ -136,7 +136,7 @@ export default function ChatScreen() {
             <p className="font-medium text-slate-500 dark:text-slate-400">Ask anything about your data.</p>
             <p>"How's my week going?"</p>
             <p>"Can I afford a big dinner today?"</p>
-            <p>"I ate 2 rotis and dal" — logs it for you.</p>
+            <p>"I ate 2 rotis and dal" logs it for you.</p>
           </div>
         )}
 

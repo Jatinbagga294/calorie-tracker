@@ -17,7 +17,7 @@ export default function QuickAddFood({ onLogged, placeholder = 'What did you eat
       setText('')
       onLogged(parsed)
     } catch (err) {
-      setError(err.message || 'Could not parse that. Try again.')
+      setError(err.message || 'Could not add that. Try again.')
     } finally {
       setLoading(false)
     }

@@ -10,7 +10,7 @@ export default function LogList({ log, onSelectEntry, canLog = true }) {
   if (entries.length === 0) {
     return (
       <p className="text-center text-slate-400 dark:text-slate-500 py-8 text-sm">
-        {canLog ? 'Nothing logged yet — type what you ate above.' : 'Nothing logged for this day.'}
+        {canLog ? 'Nothing logged yet. Type what you ate above.' : 'Nothing logged for this day.'}
       </p>
     )
   }

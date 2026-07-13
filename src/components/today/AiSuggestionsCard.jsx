@@ -5,7 +5,7 @@ import { generateSuggestions } from '../../lib/suggestions'
 import { remainingToday, paceProjection, weeklyAnalytics } from '../../lib/insights'
 import { todayKey } from '../../lib/dateUtils'
 
-const CACHE_KEY = 'calorie_tracker_ai_suggestions_v2'
+const CACHE_KEY = 'calorie_tracker_ai_suggestions_v3'
 
 function readCache() {
   try {
@@ -96,7 +96,7 @@ export default function AiSuggestionsCard({ totals, waterMl, profile, trailingDa
       </div>
 
       {loading && !hasItems && (
-        <p className="text-sm text-slate-400 dark:text-slate-500 py-2">Analyzing your data…</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500 py-2">Loading suggestions...</p>
       )}
 
       {!loading && !hasItems && (
@@ -118,7 +118,7 @@ export default function AiSuggestionsCard({ totals, waterMl, profile, trailingDa
 
       {usedFallback && hasItems && (
         <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-2">
-          Basic suggestions — couldn't reach the AI service, tap Refresh to retry.
+          Based on your recent logs. Tap Refresh to update.
         </p>
       )}
     </div>

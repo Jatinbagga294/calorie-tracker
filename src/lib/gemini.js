@@ -60,16 +60,19 @@ the user's goal (lose/maintain/gain weight), target rate, body stats, daily targ
 intake and remaining amounts, 7-day averages, projected weight pace, and protein hit rate.
 
 Return 2-4 suggestions. Hard rules:
-- Every suggestion must be grounded in the user's own numbers (calories, grams, days, kg) —
+- Every suggestion must be grounded in the user's own numbers (calories, grams, days, kg),
   nothing that would fit any random user.
 - NEVER name or recommend specific foods, dishes, meals, or ingredients. Speak only in numbers
   and behaviors: amounts, timing, consistency, pace vs goal (e.g. "you need ~400 more cal/day
   to hit your surplus", "protein runs 38g short on logged days").
-- Apply common sense for the goal. GAIN: focus on closing the surplus gap and protein per kg —
+- Apply common sense for the goal. GAIN: focus on closing the surplus gap and protein per kg,
   never suggest eating less. LOSE: deficit adherence and keeping protein high. MAINTAIN:
   consistency and macro balance.
 - No hydration reminders, no platitudes, no medical advice, no emojis.
-- Each under 25 words.`
+- Each under 25 words.
+- Style: plain, human sentences. Never use em dashes (use commas or periods). No exclamation
+  marks, no "Great job", no "Keep it up", no chatbot filler. Read like a stats readout a
+  fitness app would show, not like an assistant talking.`
 
 const CHAT_SCHEMA = {
   type: 'object',
@@ -101,16 +104,20 @@ Rules:
   friendly. No emojis, no medical advice.
 - If the user states they ate or drank something, estimate its nutrition, set foodToLog
   (description = short name of what they ate, calories in kcal, macros in grams), and confirm
-  in the reply with the calorie total. Only set foodToLog when they report eating — never for
+  in the reply with the calorie total. Only set foodToLog when they report eating, never for
   hypothetical questions like "can I afford a burger?".
 - Do not volunteer food or meal recommendations. If the user explicitly asks what to eat, you
   may answer with specific suggestions sized to their remaining targets.
-- If asked something unrelated to nutrition/fitness/their data, answer briefly and steer back.`
+- If asked something unrelated to nutrition/fitness/their data, answer briefly and steer back.
+- Style: write like a knowledgeable friend texting, not like an AI assistant. Never use em
+  dashes (use commas or periods). No "As an AI", "I'm here to help", "Feel free to",
+  "Great question", "Absolutely!", no emojis, no bullet lists unless asked, no
+  over-enthusiasm. Plain and direct.`
 }
 
 async function callGeminiJSON(systemPrompt, contentsOrText, schema) {
   if (!API_KEY) {
-    throw new Error('Missing VITE_GEMINI_API_KEY. Add it to your .env file to enable AI parsing.')
+    throw new Error('Setup incomplete: missing API key.')
   }
 
   const contents =
@@ -145,29 +152,28 @@ async function callGeminiJSON(systemPrompt, contentsOrText, schema) {
       if (res.status === 404 || errBody.includes('PerDay')) exhaustedModels.add(model)
       lastError = new Error(
         res.status === 429
-          ? 'Daily free AI quota used up across all models. It resets at midnight PT.'
-          : `Model ${model} unavailable.`,
+          ? "Today's usage limit is reached. It resets overnight."
+          : 'Service temporarily unavailable. Try again later.',
       )
       continue
     }
 
     if (!res.ok) {
-      const errBody = await res.text().catch(() => '')
-      throw new Error(`Gemini API error (${res.status}): ${errBody || res.statusText}`)
+      throw new Error('Something went wrong. Try again.')
     }
 
     const data = await res.json()
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
-    if (!text) throw new Error('Gemini returned no content.')
+    if (!text) throw new Error('No response. Try again.')
 
     try {
       return JSON.parse(text)
     } catch {
-      throw new Error('Gemini returned malformed JSON.')
+      throw new Error('Something went wrong. Try again.')
     }
   }
 
-  throw lastError || new Error('No Gemini model available.')
+  throw lastError || new Error('Service unavailable. Try again later.')
 }
 
 function round1(n) {

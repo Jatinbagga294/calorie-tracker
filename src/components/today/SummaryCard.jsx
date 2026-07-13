@@ -14,9 +14,9 @@ export default function SummaryCard({ totals, targets }) {
     goal === 'gain'
       ? isUnder
         ? `${amount} cal to go`
-        : `Goal hit — ${amount} cal past target`
+        : `Goal hit, ${amount} cal past target`
       : goal === 'maintain' && onPlan
-        ? `On target — ${amount} cal ${isUnder ? 'under' : 'over'}`
+        ? `On target, ${amount} cal ${isUnder ? 'under' : 'over'}`
         : `${amount} cal ${isUnder ? 'under' : 'over'} target`
 
   const statusClass = onPlan
