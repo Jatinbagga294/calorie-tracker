@@ -1,6 +1,22 @@
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
-const MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-flash-latest'
-const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`
+
+// Free-tier quotas are per model, so each entry is a separate daily bucket.
+// gemini-flash-latest (= gemini-3.5-flash) is only 20 req/day free, so it's the
+// last resort; the lite models allow ~1000 req/day each.
+const MODEL_CHAIN = [
+  ...(import.meta.env.VITE_GEMINI_MODEL ? [import.meta.env.VITE_GEMINI_MODEL] : []),
+  'gemini-flash-lite-latest',
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-flash',
+  'gemini-flash-latest',
+]
+
+const endpoint = (model) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
+
+// Remember which models are exhausted (per page load) so we don't burn a
+// round-trip on a known-dead bucket for every request.
+const exhaustedModels = new Set()
 
 const FOOD_ITEM_SCHEMA = {
   type: 'object',
@@ -102,33 +118,56 @@ async function callGeminiJSON(systemPrompt, contentsOrText, schema) {
       ? [{ role: 'user', parts: [{ text: contentsOrText }] }]
       : contentsOrText
 
-  const res = await fetch(`${ENDPOINT}?key=${API_KEY}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents,
-      systemInstruction: { parts: [{ text: systemPrompt }] },
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: schema,
-      },
-    }),
+  const body = JSON.stringify({
+    contents,
+    systemInstruction: { parts: [{ text: systemPrompt }] },
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: schema,
+    },
   })
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    throw new Error(`Gemini API error (${res.status}): ${body || res.statusText}`)
+  let lastError = null
+  for (const model of MODEL_CHAIN) {
+    if (exhaustedModels.has(model)) continue
+
+    const res = await fetch(`${endpoint(model)}?key=${API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    })
+
+    if (res.status === 429 || res.status === 404) {
+      // Out of quota (or model retired) — move on to the next bucket. Only a
+      // daily-quota 429 disables the model for this session; a per-minute one
+      // may succeed again soon.
+      const errBody = await res.text().catch(() => '')
+      if (res.status === 404 || errBody.includes('PerDay')) exhaustedModels.add(model)
+      lastError = new Error(
+        res.status === 429
+          ? 'Daily free AI quota used up across all models. It resets at midnight PT.'
+          : `Model ${model} unavailable.`,
+      )
+      continue
+    }
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '')
+      throw new Error(`Gemini API error (${res.status}): ${errBody || res.statusText}`)
+    }
+
+    const data = await res.json()
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
+    if (!text) throw new Error('Gemini returned no content.')
+
+    try {
+      return JSON.parse(text)
+    } catch {
+      throw new Error('Gemini returned malformed JSON.')
+    }
   }
 
-  const data = await res.json()
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text
-  if (!text) throw new Error('Gemini returned no content.')
-
-  try {
-    return JSON.parse(text)
-  } catch {
-    throw new Error('Gemini returned malformed JSON.')
-  }
+  throw lastError || new Error('No Gemini model available.')
 }
 
 function round1(n) {
