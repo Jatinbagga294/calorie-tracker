@@ -1,15 +1,13 @@
 import ProgressBar from '../shared/ProgressBar'
 
 export default function SummaryCard({ totals, targets }) {
-  const adjustedAllowance = targets.targetCalories + totals.caloriesOut
-  const diff = adjustedAllowance - totals.caloriesIn
+  const diff = targets.targetCalories - totals.caloriesIn
   const isUnder = diff >= 0
   const amount = Math.round(Math.abs(diff))
 
   // Goal-aware: a deficit is good when losing, bad when gaining; maintain wants to land near target.
   const goal = targets.goal
-  const onPlan =
-    goal === 'lose' ? isUnder : goal === 'gain' ? !isUnder : Math.abs(diff) <= 50
+  const onPlan = goal === 'lose' ? isUnder : goal === 'gain' ? !isUnder : Math.abs(diff) <= 50
 
   // Language matches the goal: a bulk counts up to a goal, a cut guards a budget.
   const statusText =
@@ -29,30 +27,20 @@ export default function SummaryCard({ totals, targets }) {
 
   return (
     <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
-      <div className="grid grid-cols-3 gap-2 text-center mb-4">
-        <div>
-          <div className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{Math.round(totals.caloriesIn)}</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">Eaten</div>
-        </div>
-        <div>
-          <div className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{Math.round(totals.caloriesOut)}</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">Burned</div>
-        </div>
-        <div>
-          <div className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{Math.round(totals.caloriesNet)}</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">Net</div>
-        </div>
-      </div>
-
-      <div className={`text-center rounded-xl py-2 mb-4 font-medium text-sm ${statusClass}`}>
-        {statusText}
-        <span className="block text-xs font-normal opacity-80 mt-0.5">
-          {Math.round(targets.targetCalories)} target + {Math.round(totals.caloriesOut)} burned = {Math.round(adjustedAllowance)} today's goal
+      <div className="text-center mb-3">
+        <span className="text-3xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
+          {Math.round(totals.caloriesIn)}
+        </span>
+        <span className="text-slate-400 dark:text-slate-500 text-lg font-medium">
+          {' '}
+          / {Math.round(targets.targetCalories)} cal
         </span>
       </div>
 
+      <div className={`text-center rounded-xl py-2 mb-4 font-medium text-sm ${statusClass}`}>{statusText}</div>
+
       <div className="flex flex-col gap-3">
-        <ProgressBar label="Calories" value={totals.caloriesIn} target={adjustedAllowance} unit="" />
+        <ProgressBar label="Calories" value={totals.caloriesIn} target={targets.targetCalories} unit="" />
         <ProgressBar label="Protein" value={totals.protein} target={targets.targetProtein} unit="g" colorClass="bg-rose-500" />
         <ProgressBar label="Carbs" value={totals.carbs} target={targets.targetCarbs} unit="g" colorClass="bg-amber-500" />
         <ProgressBar label="Fat" value={totals.fat} target={targets.targetFat} unit="g" colorClass="bg-violet-500" />

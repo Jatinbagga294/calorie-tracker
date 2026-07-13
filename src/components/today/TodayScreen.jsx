@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import QuickAddFood from './QuickAddFood'
-import QuickAddExercise from './QuickAddExercise'
+import RecentMeals from './RecentMeals'
 import WaterTracker from './WaterTracker'
+import WeightCard from './WeightCard'
 import SummaryCard from './SummaryCard'
 import InsightsCard from './InsightsCard'
 import AiSuggestionsCard from './AiSuggestionsCard'
@@ -13,14 +14,12 @@ import CalendarView from '../calendar/CalendarView'
 import {
   getDailyLog,
   addFoodEntry,
-  addExerciseEntry,
   updateFoodEntry,
-  updateExerciseEntry,
   deleteFoodEntry,
-  deleteExerciseEntry,
   addWater,
   setWater,
   getProfile,
+  getRecentMeals,
 } from '../../lib/storage'
 import { todayKey, addDays, formatDisplayDate, last7DayKeys } from '../../lib/dateUtils'
 
@@ -31,7 +30,7 @@ export default function TodayScreen() {
   const [selectedDate, setSelectedDate] = useState(todayKey())
   const [viewMode, setViewMode] = useState('list')
   const [, setRefreshTick] = useState(0)
-  const [toast, setToast] = useState(null)
+  const [toastEntry, setToastEntry] = useState(null)
   const [editing, setEditing] = useState(null)
   const toastTimer = useRef(null)
 
@@ -44,40 +43,45 @@ export default function TodayScreen() {
     setRefreshTick((t) => t + 1)
   }
 
-  function showToast(type, entry) {
+  function showToast(entry) {
     clearTimeout(toastTimer.current)
-    setToast({ type, entry })
-    toastTimer.current = setTimeout(() => setToast(null), TOAST_TIMEOUT_MS)
+    setToastEntry(entry)
+    toastTimer.current = setTimeout(() => setToastEntry(null), TOAST_TIMEOUT_MS)
   }
 
   function handleFoodLogged(parsed) {
     const entry = addFoodEntry(selectedDate, parsed)
     refresh()
-    showToast('food', entry)
+    showToast(entry)
   }
 
-  function handleExerciseLogged(parsed) {
-    const entry = addExerciseEntry(selectedDate, parsed)
+  function handleRelog(meal) {
+    const entry = addFoodEntry(selectedDate, {
+      rawText: meal.rawText,
+      calories: meal.calories,
+      protein: meal.protein,
+      carbs: meal.carbs,
+      fat: meal.fat,
+      fiber: meal.fiber,
+    })
     refresh()
-    showToast('exercise', entry)
+    showToast(entry)
   }
 
   function handleEditFromToast() {
-    setEditing({ type: toast.type, entry: toast.entry })
+    setEditing(toastEntry)
     clearTimeout(toastTimer.current)
-    setToast(null)
+    setToastEntry(null)
   }
 
   function handleSaveEdit(updates) {
-    if (editing.type === 'food') updateFoodEntry(selectedDate, editing.entry.id, updates)
-    else updateExerciseEntry(selectedDate, editing.entry.id, updates)
+    updateFoodEntry(selectedDate, editing.id, updates)
     refresh()
     setEditing(null)
   }
 
   function handleDeleteEdit() {
-    if (editing.type === 'food') deleteFoodEntry(selectedDate, editing.entry.id)
-    else deleteExerciseEntry(selectedDate, editing.entry.id)
+    deleteFoodEntry(selectedDate, editing.id)
     refresh()
     setEditing(null)
   }
@@ -103,17 +107,20 @@ export default function TodayScreen() {
     const day = getDailyLog(key)
     return { dateKey: key, totals: day.totals, waterMl: day.waterMl }
   })
+  const recentMeals = getRecentMeals()
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-24 flex flex-col gap-5">
       {isToday && (
-        <>
+        <div className="flex flex-col gap-2">
           <QuickAddFood onLogged={handleFoodLogged} />
-          <QuickAddExercise onLogged={handleExerciseLogged} />
-        </>
+          <RecentMeals meals={recentMeals} onRelog={handleRelog} />
+        </div>
       )}
 
-      {toast && <LoggedToast toast={toast} onEdit={handleEditFromToast} onDismiss={() => setToast(null)} />}
+      {toastEntry && (
+        <LoggedToast entry={toastEntry} onEdit={handleEditFromToast} onDismiss={() => setToastEntry(null)} />
+      )}
 
       {isToday && (
         <WaterTracker
@@ -123,6 +130,8 @@ export default function TodayScreen() {
           onSet={handleSetWater}
         />
       )}
+
+      {isToday && <WeightCard onLogged={refresh} />}
 
       <SummaryCard totals={log.totals} targets={profile} />
 
@@ -181,19 +190,13 @@ export default function TodayScreen() {
       </div>
 
       {viewMode === 'list' ? (
-        <LogList log={log} onSelectEntry={(type, entry) => setEditing({ type, entry })} />
+        <LogList log={log} onSelectEntry={(entry) => setEditing(entry)} />
       ) : (
         <CalendarView selectedDate={selectedDate} onSelectDate={handleSelectDate} />
       )}
 
       {editing && (
-        <EditEntryModal
-          type={editing.type}
-          entry={editing.entry}
-          onSave={handleSaveEdit}
-          onDelete={handleDeleteEdit}
-          onClose={() => setEditing(null)}
-        />
+        <EditEntryModal entry={editing} onSave={handleSaveEdit} onDelete={handleDeleteEdit} onClose={() => setEditing(null)} />
       )}
     </div>
   )

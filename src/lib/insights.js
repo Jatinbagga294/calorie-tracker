@@ -3,11 +3,10 @@ import { calculateAllTargets } from './calculations'
 const KCAL_PER_KG_FAT = 7700
 const MIN_DAYS_FOR_PACE = 3
 
-// What's left to eat/drink today. Calories account for exercise (target + burned = allowance).
+// What's left to eat/drink today against the daily targets.
 export function remainingToday({ totals, waterMl, profile }) {
-  const allowance = profile.targetCalories + totals.caloriesOut
   return {
-    calories: Math.round(allowance - totals.caloriesIn),
+    calories: Math.round(profile.targetCalories - totals.caloriesIn),
     protein: Math.round(profile.targetProtein - totals.protein),
     carbs: Math.round(profile.targetCarbs - totals.carbs),
     fat: Math.round(profile.targetFat - totals.fat),
@@ -16,8 +15,8 @@ export function remainingToday({ totals, waterMl, profile }) {
   }
 }
 
-// Projects weight change per week from the average energy balance of recent tracked days.
-// days: [{ totals, waterMl }], oldest first. Returns null until enough days are logged.
+// Projects weight change per week from average intake vs estimated daily burn (TDEE).
+// days: [{ totals, waterMl }], oldest first. Returns { ready: false } until enough days logged.
 export function paceProjection(days, profile) {
   const tracked = days.filter((d) => d.totals.caloriesIn > 0)
   if (tracked.length < MIN_DAYS_FOR_PACE) {
@@ -25,8 +24,8 @@ export function paceProjection(days, profile) {
   }
 
   const tdee = calculateAllTargets(profile).tdee
-  const avgNet = tracked.reduce((sum, d) => sum + d.totals.caloriesNet, 0) / tracked.length
-  const dailyBalance = avgNet - tdee // negative = deficit
+  const avgIn = tracked.reduce((sum, d) => sum + d.totals.caloriesIn, 0) / tracked.length
+  const dailyBalance = avgIn - tdee // negative = deficit
   const kgPerWeek = (dailyBalance * 7) / KCAL_PER_KG_FAT
 
   return { ready: true, kgPerWeek, trackedDays: tracked.length }
@@ -59,14 +58,12 @@ export function weeklyAnalytics(days, profile) {
   if (tracked.length === 0) return { trackedDays: 0 }
 
   const avg = (fn) => Math.round(tracked.reduce((sum, d) => sum + fn(d), 0) / tracked.length)
-  const avgNet = avg((d) => d.totals.caloriesNet)
+  const avgIn = avg((d) => d.totals.caloriesIn)
 
   return {
     trackedDays: tracked.length,
-    avgIn: avg((d) => d.totals.caloriesIn),
-    avgOut: avg((d) => d.totals.caloriesOut),
-    avgNet,
-    netVsTarget: avgNet - profile.targetCalories,
+    avgIn,
+    inVsTarget: avgIn - profile.targetCalories,
     proteinHitDays: tracked.filter((d) => d.totals.protein >= profile.targetProtein).length,
   }
 }

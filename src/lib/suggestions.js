@@ -1,14 +1,11 @@
 const MIN_TRACKED_DAYS = 3
 
-const PROTEIN_FOODS = ['chicken', 'dal', 'eggs', 'paneer', 'greek yogurt', 'tofu', 'lentils', 'fish']
-const FIBER_FOODS = ['vegetables', 'fruit', 'whole grains', 'chickpeas', 'oats', 'beans']
-
 function average(nums) {
   return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0
 }
 
 // Deterministic, goal-aware fallback used when the AI suggestion call is unavailable.
-// days: array of { dateKey, totals, waterMl }, oldest -> newest, trailing 3-7 days.
+// Numbers-only: never names foods. days: [{ dateKey, totals, waterMl }], oldest -> newest.
 export function generateSuggestions(days, targets) {
   if (!targets) return []
 
@@ -22,7 +19,7 @@ export function generateSuggestions(days, targets) {
       suggestions.push({
         type: 'protein_low',
         severity: 'info',
-        message: `Your protein has averaged ${Math.round(avgProtein)}g/day, below your ${targets.targetProtein}g target. Try adding ${PROTEIN_FOODS.slice(0, 4).join(', ')}.`,
+        message: `Protein has averaged ${Math.round(avgProtein)}g/day — ${Math.round(targets.targetProtein - avgProtein)}g short of your ${targets.targetProtein}g target.`,
       })
     }
 
@@ -37,7 +34,7 @@ export function generateSuggestions(days, targets) {
         })
       }
     } else {
-      const overDays = trackedDays.filter((d) => d.totals.caloriesIn > targets.targetCalories + d.totals.caloriesOut)
+      const overDays = trackedDays.filter((d) => d.totals.caloriesIn > targets.targetCalories)
       if (overDays.length / trackedDays.length >= 0.6) {
         suggestions.push({
           type: 'calories_over',
@@ -52,22 +49,7 @@ export function generateSuggestions(days, targets) {
       suggestions.push({
         type: 'fiber_low',
         severity: 'info',
-        message: `Fiber has averaged ${Math.round(avgFiber)}g/day, below your ${targets.targetFiber}g target. Try more ${FIBER_FOODS.slice(0, 3).join(', ')}.`,
-      })
-    }
-  }
-
-  // Exercise gap, framed for the goal: training builds muscle on a bulk, burns on a cut.
-  if (days.length >= MIN_TRACKED_DAYS && trackedDays.length >= 1) {
-    const exerciseDays = days.filter((d) => d.totals.caloriesOut > 0).length
-    if (exerciseDays === 0) {
-      suggestions.push({
-        type: 'no_exercise',
-        severity: 'info',
-        message:
-          goal === 'gain'
-            ? `No training logged in the last ${days.length} days. Strength work 3x/week turns your surplus into muscle instead of fat.`
-            : `No exercise logged in the last ${days.length} days. A 30-min brisk walk burns roughly 130-160 cal.`,
+        message: `Fiber has averaged ${Math.round(avgFiber)}g/day — ${Math.round(targets.targetFiber - avgFiber)}g below your ${targets.targetFiber}g target.`,
       })
     }
   }

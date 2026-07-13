@@ -1,6 +1,7 @@
 import TrendChart from './TrendChart'
-import { getDailyLog, getProfile } from '../../lib/storage'
-import { last7DayKeys, parseDateKey } from '../../lib/dateUtils'
+import WeightChart from './WeightChart'
+import { getDailyLog, getProfile, getWeightEntries } from '../../lib/storage'
+import { last7DayKeys, parseDateKey, addDays, todayKey } from '../../lib/dateUtils'
 
 function StatTile({ label, value, sub }) {
   return (
@@ -19,8 +20,6 @@ export default function WeeklyScreen() {
   const chartData = days.map((d) => ({
     label: parseDateKey(d.dateKey).toLocaleDateString(undefined, { weekday: 'short' }),
     in: Math.round(d.totals.caloriesIn),
-    out: Math.round(d.totals.caloriesOut),
-    net: Math.round(d.totals.caloriesNet),
   }))
 
   const trackedDays = days.filter((d) => d.totals.caloriesIn > 0)
@@ -30,20 +29,24 @@ export default function WeeklyScreen() {
   const avg = (fn) => Math.round(sum(fn) / n)
 
   const totalIn = sum((d) => d.totals.caloriesIn)
-  const totalOut = sum((d) => d.totals.caloriesOut)
-  const totalNet = sum((d) => d.totals.caloriesNet)
-
   const avgProtein = avg((d) => d.totals.protein)
   const avgCarbs = avg((d) => d.totals.carbs)
   const avgFat = avg((d) => d.totals.fat)
   const avgFiber = avg((d) => d.totals.fiber)
   const avgWater = avg((d) => d.waterMl || 0)
 
-  const netVsTarget = Math.round(avg((d) => d.totals.caloriesNet) - profile.targetCalories)
+  const inVsTarget = Math.round(avg((d) => d.totals.caloriesIn) - profile.targetCalories)
   const proteinHitDays = days.filter((d) => d.totals.protein >= profile.targetProtein).length
 
-  const exerciseDays = days.filter((d) => d.exerciseEntries.length > 0).length
-  const totalExerciseMin = sum((d) => d.exerciseEntries.reduce((s, e) => s + (e.durationMin || 0), 0))
+  // Weight: last 30 days of weigh-ins
+  const cutoff = addDays(todayKey(), -30)
+  const weightEntries = getWeightEntries().filter((e) => e.dateKey >= cutoff)
+  const weightData = weightEntries.map((e) => ({
+    label: parseDateKey(e.dateKey).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+    kg: e.kg,
+  }))
+  const weightDelta =
+    weightEntries.length >= 2 ? weightEntries[weightEntries.length - 1].kg - weightEntries[0].kg : null
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-24 flex flex-col gap-5">
@@ -51,21 +54,38 @@ export default function WeeklyScreen() {
 
       <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
         <h2 className="font-medium text-slate-700 dark:text-slate-300 mb-3">Calories</h2>
-        <div className="grid grid-cols-3 gap-2">
-          <StatTile label="In (avg)" value={avg((d) => d.totals.caloriesIn)} sub={`${totalIn} total`} />
-          <StatTile label="Out (avg)" value={avg((d) => d.totals.caloriesOut)} sub={`${totalOut} total`} />
-          <StatTile label="Net (avg)" value={avg((d) => d.totals.caloriesNet)} sub={`${totalNet} total`} />
+        <div className="grid grid-cols-2 gap-2">
+          <StatTile label="Daily average" value={avg((d) => d.totals.caloriesIn)} sub={`${totalIn} total`} />
+          <StatTile
+            label="vs target"
+            value={`${inVsTarget > 0 ? '+' : ''}${inVsTarget}`}
+            sub={`target ${profile.targetCalories}`}
+          />
         </div>
-        <p className="text-sm text-center mt-3 text-slate-600 dark:text-slate-300">
-          {netVsTarget <= 0
-            ? `You averaged ${Math.abs(netVsTarget)} cal under target this week`
-            : `You averaged ${netVsTarget} cal over target this week`}
-        </p>
+        <div className="mt-3">
+          <TrendChart data={chartData} target={profile.targetCalories} />
+        </div>
       </section>
 
       <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
-        <h2 className="font-medium text-slate-700 dark:text-slate-300 mb-3">Daily trend</h2>
-        <TrendChart data={chartData} />
+        <h2 className="font-medium text-slate-700 dark:text-slate-300 mb-3">Weight</h2>
+        {weightData.length >= 2 ? (
+          <>
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <StatTile label="Latest" value={`${weightEntries[weightEntries.length - 1].kg} kg`} />
+              <StatTile
+                label="Last 30 days"
+                value={`${weightDelta > 0 ? '+' : ''}${weightDelta.toFixed(1)} kg`}
+                sub={`${weightEntries.length} weigh-ins`}
+              />
+            </div>
+            <WeightChart data={weightData} />
+          </>
+        ) : (
+          <p className="text-sm text-slate-400 dark:text-slate-500">
+            Log your weight on the Today screen at least twice to see your trend here.
+          </p>
+        )}
       </section>
 
       <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
@@ -82,17 +102,12 @@ export default function WeeklyScreen() {
       </section>
 
       <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
-        <h2 className="font-medium text-slate-700 dark:text-slate-300 mb-3">Workouts</h2>
-        <div className="grid grid-cols-3 gap-2">
-          <StatTile label="Days exercised" value={`${exerciseDays}/${n}`} />
-          <StatTile label="Total time" value={`${totalExerciseMin}m`} />
-          <StatTile label="Cal burned" value={totalOut} />
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
         <h2 className="font-medium text-slate-700 dark:text-slate-300 mb-3">Water</h2>
-        <StatTile label="Daily average" value={`${(avgWater / 1000).toFixed(1)}L`} sub={`goal ${(profile.targetWaterMl / 1000).toFixed(1)}L`} />
+        <StatTile
+          label="Daily average"
+          value={`${(avgWater / 1000).toFixed(1)}L`}
+          sub={`goal ${(profile.targetWaterMl / 1000).toFixed(1)}L`}
+        />
       </section>
 
       {trackedDays.length === 0 && (

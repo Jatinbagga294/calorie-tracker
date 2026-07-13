@@ -75,11 +75,9 @@ export default function InsightsCard({ totals, waterMl, profile, trailingDays })
 
         {week.trackedDays >= 3 && (
           <>
-            <StatRow Icon={Activity}>
-              7-day average: {week.avgIn} cal in · {week.avgOut} out · {week.avgNet} net
-            </StatRow>
+            <StatRow Icon={Activity}>7-day average intake: {week.avgIn} cal/day</StatRow>
             <StatRow Icon={Target}>
-              Net is {Math.abs(week.netVsTarget)} cal/day {week.netVsTarget > 0 ? 'above' : 'below'} your{' '}
+              {Math.abs(week.inVsTarget)} cal/day {week.inVsTarget > 0 ? 'above' : 'below'} your{' '}
               {profile.targetCalories} target
             </StatRow>
             <StatRow Icon={CheckCircle2}>

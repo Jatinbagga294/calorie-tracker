@@ -11,12 +11,14 @@ const FOOD_FIELDS = [
   { key: 'fiber', label: 'Fiber', unit: 'g' },
 ]
 
-export default function EditEntryModal({ type, entry, onSave, onDelete, onClose }) {
-  const [values, setValues] = useState(
-    type === 'food'
-      ? { calories: entry.calories, protein: entry.protein, carbs: entry.carbs, fat: entry.fat, fiber: entry.fiber }
-      : { caloriesBurned: entry.caloriesBurned, durationMin: entry.durationMin, activityType: entry.activityType },
-  )
+export default function EditEntryModal({ entry, onSave, onDelete, onClose }) {
+  const [values, setValues] = useState({
+    calories: entry.calories,
+    protein: entry.protein,
+    carbs: entry.carbs,
+    fat: entry.fat,
+    fiber: entry.fiber,
+  })
 
   function setField(key, value) {
     setValues((v) => ({ ...v, [key]: value }))
@@ -24,9 +26,7 @@ export default function EditEntryModal({ type, entry, onSave, onDelete, onClose 
 
   function save() {
     const updates = {}
-    for (const [k, v] of Object.entries(values)) {
-      updates[k] = k === 'activityType' ? v : Number(v)
-    }
+    for (const [k, v] of Object.entries(values)) updates[k] = Number(v)
     onSave(updates)
   }
 
@@ -39,60 +39,22 @@ export default function EditEntryModal({ type, entry, onSave, onDelete, onClose 
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50 mb-1">Edit entry</h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 italic">"{entry.rawText}"</p>
 
-        {type === 'food' ? (
-          <div className="flex flex-col gap-3">
-            {FOOD_FIELDS.map((f) => (
-              <div key={f.key} className="flex items-center justify-between gap-3">
-                <label className="text-slate-700 dark:text-slate-300">{f.label}</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    className={`${numInputClass} w-24 text-right`}
-                    value={values[f.key]}
-                    onChange={(e) => setField(f.key, e.target.value)}
-                  />
-                  <span className="text-slate-400 text-sm w-10">{f.unit}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 mb-1">Activity</label>
-              <input
-                type="text"
-                className={numInputClass}
-                value={values.activityType}
-                onChange={(e) => setField('activityType', e.target.value)}
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <label className="text-slate-700 dark:text-slate-300">Duration</label>
+        <div className="flex flex-col gap-3">
+          {FOOD_FIELDS.map((f) => (
+            <div key={f.key} className="flex items-center justify-between gap-3">
+              <label className="text-slate-700 dark:text-slate-300">{f.label}</label>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
                   className={`${numInputClass} w-24 text-right`}
-                  value={values.durationMin}
-                  onChange={(e) => setField('durationMin', e.target.value)}
+                  value={values[f.key]}
+                  onChange={(e) => setField(f.key, e.target.value)}
                 />
-                <span className="text-slate-400 text-sm w-10">min</span>
+                <span className="text-slate-400 text-sm w-10">{f.unit}</span>
               </div>
             </div>
-            <div className="flex items-center justify-between gap-3">
-              <label className="text-slate-700 dark:text-slate-300">Calories burned</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  className={`${numInputClass} w-24 text-right`}
-                  value={values.caloriesBurned}
-                  onChange={(e) => setField('caloriesBurned', e.target.value)}
-                />
-                <span className="text-slate-400 text-sm w-10">kcal</span>
-              </div>
-            </div>
-          </div>
-        )}
+          ))}
+        </div>
 
         <div className="flex gap-3 mt-6">
           <button
@@ -109,11 +71,7 @@ export default function EditEntryModal({ type, entry, onSave, onDelete, onClose 
           >
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={save}
-            className="flex-1 px-4 py-2.5 rounded-xl font-medium text-white bg-brand-600"
-          >
+          <button type="button" onClick={save} className="flex-1 px-4 py-2.5 rounded-xl font-medium text-white bg-brand-600">
             Save
           </button>
         </div>

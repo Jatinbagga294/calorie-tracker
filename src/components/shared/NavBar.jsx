@@ -1,8 +1,9 @@
 import { NavLink } from 'react-router-dom'
-import { Home, BarChart3, Scale, Settings } from 'lucide-react'
+import { Home, MessageCircle, BarChart3, Scale, Settings } from 'lucide-react'
 
 const TABS = [
   { to: '/', label: 'Today', Icon: Home, end: true },
+  { to: '/chat', label: 'Chat', Icon: MessageCircle },
   { to: '/weekly', label: 'Weekly', Icon: BarChart3 },
   { to: '/bmi', label: 'BMI', Icon: Scale },
   { to: '/profile', label: 'Profile', Icon: Settings },
@@ -11,7 +12,7 @@ const TABS = [
 export default function NavBar() {
   return (
     <nav className="fixed bottom-0 inset-x-0 border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur pb-[env(safe-area-inset-bottom)] z-20">
-      <div className="max-w-lg mx-auto grid grid-cols-4">
+      <div className="max-w-lg mx-auto grid grid-cols-5">
         {TABS.map(({ to, label, Icon, end }) => (
           <NavLink
             key={to}

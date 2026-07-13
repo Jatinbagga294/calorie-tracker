@@ -13,7 +13,7 @@ export default function CalendarView({ selectedDate, onSelectDate }) {
 
   const loggedDays = new Set()
   for (const [key, day] of Object.entries(getAllDailyLogs())) {
-    if (day.foodEntries?.length || day.exerciseEntries?.length || day.waterMl > 0) loggedDays.add(key)
+    if (day.foodEntries?.length || day.waterMl > 0) loggedDays.add(key)
   }
 
   const today = todayKey()

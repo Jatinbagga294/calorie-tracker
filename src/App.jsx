@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import Onboarding from './components/onboarding/Onboarding'
 import TodayScreen from './components/today/TodayScreen'
+import ChatScreen from './components/chat/ChatScreen'
 import WeeklyScreen from './components/weekly/WeeklyScreen'
 import BmiCalculator from './components/bmi/BmiCalculator'
 import ProfileScreen from './components/profile/ProfileScreen'
@@ -32,6 +33,14 @@ export default function App() {
           element={
             <RequireProfile>
               <TodayScreen />
+            </RequireProfile>
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            <RequireProfile>
+              <ChatScreen />
             </RequireProfile>
           }
         />

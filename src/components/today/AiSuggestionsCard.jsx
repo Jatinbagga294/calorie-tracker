@@ -5,7 +5,7 @@ import { generateSuggestions } from '../../lib/suggestions'
 import { remainingToday, paceProjection, weeklyAnalytics } from '../../lib/insights'
 import { todayKey } from '../../lib/dateUtils'
 
-const CACHE_KEY = 'calorie_tracker_ai_suggestions'
+const CACHE_KEY = 'calorie_tracker_ai_suggestions_v2'
 
 function readCache() {
   try {
@@ -42,7 +42,6 @@ export default function AiSuggestionsCard({ totals, waterMl, profile, trailingDa
         },
         todaySoFar: {
           caloriesIn: totals.caloriesIn,
-          caloriesBurned: totals.caloriesOut,
           protein: totals.protein,
           carbs: totals.carbs,
           fat: totals.fat,
@@ -52,7 +51,6 @@ export default function AiSuggestionsCard({ totals, waterMl, profile, trailingDa
         localHour: new Date().getHours(),
         last7LoggedDays: week.trackedDays > 0 ? week : null,
         projectedPaceKgPerWeek: pace.ready ? Number(pace.kgPerWeek.toFixed(2)) : null,
-        exerciseDaysLast7: trailingDays.filter((d) => d.totals.caloriesOut > 0).length,
       }
       const result = await getSmartSuggestions(context)
       setItems(result)

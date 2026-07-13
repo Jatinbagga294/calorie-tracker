@@ -24,25 +24,6 @@ const FOOD_ITEM_SCHEMA = {
   required: ['items'],
 }
 
-const EXERCISE_ITEM_SCHEMA = {
-  type: 'object',
-  properties: {
-    items: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          activityType: { type: 'string' },
-          durationMin: { type: 'number' },
-          caloriesBurned: { type: 'number' },
-        },
-        required: ['activityType', 'durationMin', 'caloriesBurned'],
-      },
-    },
-  },
-  required: ['items'],
-}
-
 const FOOD_SYSTEM_PROMPT = `You are a nutrition estimation assistant. The user will describe food they ate in
 plain English, possibly with Indian/South Asian dishes (roti, dal, sabzi, paneer, etc.) alongside
 Western foods. Break the description into distinct food items and estimate reasonable nutrition
@@ -50,22 +31,82 @@ values for realistic home-cooked or restaurant portions when exact quantities ar
 Return calories in kcal, and protein/carbs/fat/fiber in grams, as best-estimate numbers (not
 strings, not ranges). If a quantity is given (e.g. "2 rotis"), scale accordingly.`
 
-const EXERCISE_SYSTEM_PROMPT = `You are an exercise calorie-estimation assistant. The user will describe
-exercise/activity they did in plain English, possibly multiple activities in one sentence. Break
-it into distinct activities and estimate calories burned for an average adult, using stated
-duration when given (assume a moderate, typical duration if none is given, e.g. 30 min). Return
-durationMin in minutes and caloriesBurned in kcal as best-estimate numbers.`
+const SUGGESTIONS_SCHEMA = {
+  type: 'object',
+  properties: {
+    suggestions: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['suggestions'],
+}
 
-async function callGeminiJSON(systemPrompt, userText, schema) {
+const SUGGESTIONS_SYSTEM_PROMPT = `You are a data analyst inside a calorie-tracking app. You receive JSON with
+the user's goal (lose/maintain/gain weight), target rate, body stats, daily targets, today's
+intake and remaining amounts, 7-day averages, projected weight pace, and protein hit rate.
+
+Return 2-4 suggestions. Hard rules:
+- Every suggestion must be grounded in the user's own numbers (calories, grams, days, kg) —
+  nothing that would fit any random user.
+- NEVER name or recommend specific foods, dishes, meals, or ingredients. Speak only in numbers
+  and behaviors: amounts, timing, consistency, pace vs goal (e.g. "you need ~400 more cal/day
+  to hit your surplus", "protein runs 38g short on logged days").
+- Apply common sense for the goal. GAIN: focus on closing the surplus gap and protein per kg —
+  never suggest eating less. LOSE: deficit adherence and keeping protein high. MAINTAIN:
+  consistency and macro balance.
+- No hydration reminders, no platitudes, no medical advice, no emojis.
+- Each under 25 words.`
+
+const CHAT_SCHEMA = {
+  type: 'object',
+  properties: {
+    reply: { type: 'string' },
+    foodToLog: {
+      type: 'object',
+      properties: {
+        description: { type: 'string' },
+        calories: { type: 'number' },
+        protein: { type: 'number' },
+        carbs: { type: 'number' },
+        fat: { type: 'number' },
+        fiber: { type: 'number' },
+      },
+      required: ['description', 'calories', 'protein', 'carbs', 'fat', 'fiber'],
+    },
+  },
+  required: ['reply'],
+}
+
+function chatSystemPrompt(contextJson) {
+  return `You are the assistant inside a personal calorie-tracking app. The user's live data (their
+goal, daily targets, what they've logged today, remaining amounts, 7-day stats, projected pace,
+recent weigh-ins) is: ${contextJson}
+
+Rules:
+- Answer using their actual numbers whenever relevant. Be concise (1-4 sentences), direct,
+  friendly. No emojis, no medical advice.
+- If the user states they ate or drank something, estimate its nutrition, set foodToLog
+  (description = short name of what they ate, calories in kcal, macros in grams), and confirm
+  in the reply with the calorie total. Only set foodToLog when they report eating — never for
+  hypothetical questions like "can I afford a burger?".
+- Do not volunteer food or meal recommendations. If the user explicitly asks what to eat, you
+  may answer with specific suggestions sized to their remaining targets.
+- If asked something unrelated to nutrition/fitness/their data, answer briefly and steer back.`
+}
+
+async function callGeminiJSON(systemPrompt, contentsOrText, schema) {
   if (!API_KEY) {
     throw new Error('Missing VITE_GEMINI_API_KEY. Add it to your .env file to enable AI parsing.')
   }
+
+  const contents =
+    typeof contentsOrText === 'string'
+      ? [{ role: 'user', parts: [{ text: contentsOrText }] }]
+      : contentsOrText
 
   const res = await fetch(`${ENDPOINT}?key=${API_KEY}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: userText }] }],
+      contents,
       systemInstruction: { parts: [{ text: systemPrompt }] },
       generationConfig: {
         responseMimeType: 'application/json',
@@ -88,42 +129,6 @@ async function callGeminiJSON(systemPrompt, userText, schema) {
   } catch {
     throw new Error('Gemini returned malformed JSON.')
   }
-}
-
-const SUGGESTIONS_SCHEMA = {
-  type: 'object',
-  properties: {
-    suggestions: { type: 'array', items: { type: 'string' } },
-  },
-  required: ['suggestions'],
-}
-
-const SUGGESTIONS_SYSTEM_PROMPT = `You are a sharp, numbers-driven fitness coach analyzing a user's
-calorie-tracking data. You receive JSON: their goal (lose/maintain/gain weight), target rate,
-body stats, daily targets, today's intake/burn/remaining, 7-day averages, projected weight pace,
-protein hit rate, and exercise frequency.
-
-Return 2-4 suggestions. Hard rules:
-- Every suggestion must be grounded in at least one concrete number from THEIR data (grams,
-  calories, days, kg) — no generic advice that would fit any user.
-- Apply common sense for the goal. GAIN: never recommend burning calories or eating less; focus
-  on surplus size, protein per kg bodyweight, strength training, calorie-dense foods with
-  portions. LOSE: deficit adherence, protein retention, satiety, activity. MAINTAIN: consistency
-  and macro balance.
-- Give the actionable next step, not observations they can already read on their dashboard.
-  When closing a macro/calorie gap, name specific foods with rough portions (mix South Asian
-  staples and common Western options naturally).
-- No hydration reminders, no platitudes, no medical advice, no emojis.
-- Each suggestion under 25 words.`
-
-// Gets 2-4 personalized, goal-aware suggestions grounded in the user's own numbers.
-export async function getSmartSuggestions(context) {
-  const { suggestions } = await callGeminiJSON(
-    SUGGESTIONS_SYSTEM_PROMPT,
-    JSON.stringify(context),
-    SUGGESTIONS_SCHEMA,
-  )
-  return suggestions.filter((s) => typeof s === 'string' && s.trim()).slice(0, 4)
 }
 
 function round1(n) {
@@ -156,13 +161,22 @@ export async function parseFoodText(rawText) {
   }
 }
 
-// Parses free-text exercise description into a single log entry aggregating all activities mentioned.
-export async function parseExerciseText(rawText) {
-  const { items } = await callGeminiJSON(EXERCISE_SYSTEM_PROMPT, rawText, EXERCISE_ITEM_SCHEMA)
+// Gets 2-4 personalized, goal-aware, numbers-only suggestions (no food recommendations).
+export async function getSmartSuggestions(context) {
+  const { suggestions } = await callGeminiJSON(
+    SUGGESTIONS_SYSTEM_PROMPT,
+    JSON.stringify(context),
+    SUGGESTIONS_SCHEMA,
+  )
+  return suggestions.filter((s) => typeof s === 'string' && s.trim()).slice(0, 4)
+}
 
-  const caloriesBurned = Math.round(items.reduce((sum, i) => sum + (i.caloriesBurned || 0), 0))
-  const durationMin = Math.round(items.reduce((sum, i) => sum + (i.durationMin || 0), 0))
-  const activityType = items.map((i) => i.activityType).join(', ')
-
-  return { rawText, caloriesBurned, activityType, durationMin, items }
+// Chat turn with conversation memory. history: [{ role: 'user'|'model', text }].
+// Returns { reply, foodToLog? }.
+export async function chatWithCoach({ history, message, context }) {
+  const contents = [
+    ...history.slice(-16).map((m) => ({ role: m.role, parts: [{ text: m.text }] })),
+    { role: 'user', parts: [{ text: message }] },
+  ]
+  return callGeminiJSON(chatSystemPrompt(JSON.stringify(context)), contents, CHAT_SCHEMA)
 }

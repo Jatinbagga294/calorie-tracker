@@ -14,7 +14,7 @@ export default defineConfig({
       manifest: {
         name: 'Calorie Tracker',
         short_name: 'Calories',
-        description: 'Log food and exercise in plain English, track daily and weekly progress.',
+        description: 'Log food in plain English, track calories, macros, water and weight.',
         theme_color: '#16a34a',
         background_color: '#0f172a',
         display: 'standalone',
