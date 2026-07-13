@@ -1,13 +1,13 @@
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
 
 // Free-tier quotas are per model, so each entry is a separate daily bucket.
-// gemini-flash-latest (= gemini-3.5-flash) is only 20 req/day free, so it's the
-// last resort; the lite models allow ~1000 req/day each.
+// Verified against this account 2026-07: 2.x models are 404/zero-quota, and
+// gemini-flash-latest (= gemini-3.5-flash) is only 20 req/day free, so it's
+// the last resort; flash-lite allows ~1000 req/day.
 const MODEL_CHAIN = [
   ...(import.meta.env.VITE_GEMINI_MODEL ? [import.meta.env.VITE_GEMINI_MODEL] : []),
   'gemini-flash-lite-latest',
-  'gemini-2.5-flash-lite',
-  'gemini-2.5-flash',
+  'gemini-3-flash-preview',
   'gemini-flash-latest',
 ]
 
