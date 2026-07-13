@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Scale } from 'lucide-react'
 import { getWeightEntries, logWeight } from '../../lib/storage'
 import { todayKey, formatDisplayDate } from '../../lib/dateUtils'
+import { card, sectionLabel } from '../../lib/ui'
 
 export default function WeightCard({ onLogged }) {
   const [input, setInput] = useState('')
@@ -20,14 +21,16 @@ export default function WeightCard({ onLogged }) {
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-          <Scale size={16} className="text-slate-400" aria-hidden /> Weight
+    <div className={`${card} p-4`}>
+      <div className="flex justify-between items-center mb-3">
+        <h3 className={`${sectionLabel} flex items-center gap-1.5`}>
+          <Scale size={13} aria-hidden /> Weight
         </h3>
         {latest && (
-          <span className="text-sm text-slate-500 dark:text-slate-400 tabular-nums">
-            {latest.kg} kg · {latest.dateKey === todayKey() ? 'today' : formatDisplayDate(latest.dateKey)}
+          <span className="text-[13px] text-slate-500 dark:text-slate-400 tabular-nums">
+            <span className="font-semibold text-slate-700 dark:text-slate-200">{latest.kg} kg</span>
+            {' · '}
+            {latest.dateKey === todayKey() ? 'today' : formatDisplayDate(latest.dateKey)}
             {delta !== null && Math.abs(delta) >= 0.05 && (
               <span className={delta < 0 ? 'text-brand-600 dark:text-brand-400' : 'text-amber-600 dark:text-amber-400'}>
                 {' '}
@@ -38,7 +41,7 @@ export default function WeightCard({ onLogged }) {
           </span>
         )}
       </div>
-      <form onSubmit={submit} className="flex items-center gap-1.5">
+      <form onSubmit={submit} className="flex items-center gap-2">
         <input
           type="number"
           step="0.1"
@@ -47,12 +50,12 @@ export default function WeightCard({ onLogged }) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Today's weight (kg)"
-          className="flex-1 min-w-0 rounded-lg border border-slate-200 dark:border-slate-600 bg-transparent px-2.5 py-1.5 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-400"
+          className="flex-1 min-w-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent px-3 py-2 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
         />
         <button
           type="submit"
           disabled={!input}
-          className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-medium disabled:opacity-40"
+          className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-sm font-semibold disabled:opacity-30 transition-opacity"
         >
           Log
         </button>

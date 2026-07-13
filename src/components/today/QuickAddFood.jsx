@@ -25,7 +25,7 @@ export default function QuickAddFood({ onLogged, placeholder = 'What did you eat
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-2">
-      <div className="flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 shadow-sm focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500">
+      <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 shadow-sm shadow-slate-900/[0.03] dark:shadow-none focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500">
         <Utensils size={18} className="shrink-0 text-slate-400" aria-hidden />
         <input
           type="text"

@@ -111,7 +111,6 @@ export default function Onboarding({ onComplete }) {
       weightKg: Number(form.weightKg),
       rateOfChangeKgPerWeek: form.goal === 'maintain' ? 0 : Number(form.rateOfChangeKgPerWeek),
       ...targets,
-      targetWaterMl: 2500,
     }
     setProfile(profile)
     if (onComplete) onComplete(profile)

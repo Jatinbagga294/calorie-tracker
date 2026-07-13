@@ -25,7 +25,7 @@ function buildContext() {
   const log = getDailyLog(todayKey())
   const trailingDays = last7DayKeys().map((key) => {
     const day = getDailyLog(key)
-    return { dateKey: key, totals: day.totals, waterMl: day.waterMl }
+    return { dateKey: key, totals: day.totals }
   })
   const pace = paceProjection(trailingDays, profile)
   const weighIns = getWeightEntries().slice(-3)
@@ -42,10 +42,9 @@ function buildContext() {
       carbs: profile.targetCarbs,
       fat: profile.targetFat,
       fiber: profile.targetFiber,
-      waterMl: profile.targetWaterMl,
     },
-    todaySoFar: { ...log.totals, waterMl: log.waterMl },
-    remainingToday: remainingToday({ totals: log.totals, waterMl: log.waterMl, profile }),
+    todaySoFar: { ...log.totals },
+    remainingToday: remainingToday({ totals: log.totals, profile }),
     last7LoggedDays: weeklyAnalytics(trailingDays, profile),
     projectedPaceKgPerWeek: pace.ready ? Number(pace.kgPerWeek.toFixed(2)) : null,
     recentWeighInsKg: weighIns,
@@ -116,8 +115,8 @@ export default function ChatScreen() {
 
   return (
     <div className="max-w-lg mx-auto flex flex-col h-[100dvh] pb-14">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800">
-        <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Chat</h1>
+      <header className="flex items-center justify-between px-4 py-3 border-b border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md">
+        <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-50">Chat</h1>
         {messages.length > 0 && (
           <button
             type="button"
@@ -146,7 +145,7 @@ export default function ChatScreen() {
               className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm whitespace-pre-wrap ${
                 m.role === 'user'
                   ? 'bg-brand-600 text-white rounded-br-md'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-bl-md'
+                  : 'bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-100 rounded-bl-md shadow-sm shadow-slate-900/[0.03] dark:shadow-none'
               }`}
             >
               {m.text}
@@ -161,7 +160,7 @@ export default function ChatScreen() {
 
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-slate-100 dark:bg-slate-800 rounded-2xl rounded-bl-md px-3.5 py-2.5">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl rounded-bl-md px-3.5 py-2.5">
               <Loader2 size={16} className="animate-spin text-slate-400" aria-hidden />
             </div>
           </div>

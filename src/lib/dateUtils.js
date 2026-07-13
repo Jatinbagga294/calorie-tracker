@@ -25,6 +25,11 @@ export function formatDisplayDate(key) {
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
+export function formatFullDate(key) {
+  const d = parseDateKey(key)
+  return d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+}
+
 export function formatMonthYear(key) {
   const d = parseDateKey(key)
   return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 const numInputClass =
-  'w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-50'
+  'w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-50 tabular-nums focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500'
 
 const FOOD_FIELDS = [
   { key: 'calories', label: 'Calories', unit: 'kcal' },

@@ -4,6 +4,7 @@ import { getSmartSuggestions } from '../../lib/gemini'
 import { generateSuggestions } from '../../lib/suggestions'
 import { remainingToday, paceProjection, weeklyAnalytics } from '../../lib/insights'
 import { todayKey } from '../../lib/dateUtils'
+import { card, sectionLabel } from '../../lib/ui'
 
 const CACHE_KEY = 'calorie_tracker_ai_suggestions_v3'
 
@@ -16,7 +17,7 @@ function readCache() {
   }
 }
 
-export default function AiSuggestionsCard({ totals, waterMl, profile, trailingDays }) {
+export default function AiSuggestionsCard({ totals, profile, trailingDays }) {
   const [items, setItems] = useState(readCache)
   const [loading, setLoading] = useState(false)
   const [usedFallback, setUsedFallback] = useState(false)
@@ -47,7 +48,7 @@ export default function AiSuggestionsCard({ totals, waterMl, profile, trailingDa
           fat: totals.fat,
           fiber: totals.fiber,
         },
-        remainingToday: remainingToday({ totals, waterMl, profile }),
+        remainingToday: remainingToday({ totals, profile }),
         localHour: new Date().getHours(),
         last7LoggedDays: week.trackedDays > 0 ? week : null,
         projectedPaceKgPerWeek: pace.ready ? Number(pace.kgPerWeek.toFixed(2)) : null,
@@ -78,10 +79,10 @@ export default function AiSuggestionsCard({ totals, waterMl, profile, trailingDa
   const hasItems = items && items.length > 0
 
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
+    <div className={`${card} p-4`}>
       <div className="flex items-center justify-between mb-1">
-        <h3 className="font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-          <Lightbulb size={16} className="text-brand-600 dark:text-brand-400" aria-hidden /> Suggestions
+        <h3 className={`${sectionLabel} flex items-center gap-1.5`}>
+          <Lightbulb size={13} aria-hidden /> Suggestions
         </h3>
         <button
           type="button"

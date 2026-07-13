@@ -21,8 +21,33 @@ body {
   margin: 0;
   font-family: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #020617;
+    color: #f8fafc;
+  }
 }
 
 #root {
   min-height: 100svh;
+}
+
+/* Hide number input spinners; every numeric field here has its own affordance. */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+::selection {
+  background-color: #bbf7d0;
+  color: #14532d;
 }

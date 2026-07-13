@@ -3,20 +3,19 @@ import { calculateAllTargets } from './calculations'
 const KCAL_PER_KG_FAT = 7700
 const MIN_DAYS_FOR_PACE = 3
 
-// What's left to eat/drink today against the daily targets.
-export function remainingToday({ totals, waterMl, profile }) {
+// What's left to eat today against the daily targets.
+export function remainingToday({ totals, profile }) {
   return {
     calories: Math.round(profile.targetCalories - totals.caloriesIn),
     protein: Math.round(profile.targetProtein - totals.protein),
     carbs: Math.round(profile.targetCarbs - totals.carbs),
     fat: Math.round(profile.targetFat - totals.fat),
     fiber: Math.round(profile.targetFiber - totals.fiber),
-    waterMl: Math.round(profile.targetWaterMl - (waterMl || 0)),
   }
 }
 
 // Projects weight change per week from average intake vs estimated daily burn (TDEE).
-// days: [{ totals, waterMl }], oldest first. Returns { ready: false } until enough days logged.
+// days: [{ totals }], oldest first. Returns { ready: false } until enough days logged.
 export function paceProjection(days, profile) {
   const tracked = days.filter((d) => d.totals.caloriesIn > 0)
   if (tracked.length < MIN_DAYS_FOR_PACE) {

@@ -20,7 +20,6 @@ function writeJSON(key, value) {
 function emptyDay() {
   return {
     foodEntries: [],
-    waterMl: 0,
     totals: { caloriesIn: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
   }
 }
@@ -42,11 +41,11 @@ function makeId() {
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
-// Older builds stored exerciseEntries and burned-calorie totals; normalize so the
-// rest of the app never sees them.
+// Older builds stored exerciseEntries, waterMl and burned-calorie totals;
+// normalize so the rest of the app never sees them.
 function normalizeDay(day) {
   if (!day) return emptyDay()
-  const normalized = { foodEntries: day.foodEntries || [], waterMl: day.waterMl || 0, totals: day.totals || {} }
+  const normalized = { foodEntries: day.foodEntries || [], totals: day.totals || {} }
   return recalcTotals(normalized)
 }
 
@@ -122,18 +121,6 @@ export function updateFoodEntry(dateKeyStr, id, updates) {
 export function deleteFoodEntry(dateKeyStr, id) {
   updateDay(dateKeyStr, (day) => {
     day.foodEntries = day.foodEntries.filter((e) => e.id !== id)
-  })
-}
-
-export function setWater(dateKeyStr, waterMl) {
-  updateDay(dateKeyStr, (day) => {
-    day.waterMl = Math.max(0, waterMl)
-  })
-}
-
-export function addWater(dateKeyStr, deltaMl) {
-  updateDay(dateKeyStr, (day) => {
-    day.waterMl = Math.max(0, (day.waterMl || 0) + deltaMl)
   })
 }
 

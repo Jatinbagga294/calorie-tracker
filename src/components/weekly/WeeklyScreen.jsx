@@ -2,12 +2,13 @@ import TrendChart from './TrendChart'
 import WeightChart from './WeightChart'
 import { getDailyLog, getProfile, getWeightEntries } from '../../lib/storage'
 import { last7DayKeys, parseDateKey, addDays, todayKey } from '../../lib/dateUtils'
+import { card, sectionLabel } from '../../lib/ui'
 
 function StatTile({ label, value, sub }) {
   return (
-    <div className="rounded-xl bg-slate-50 dark:bg-slate-900/40 p-3 text-center">
-      <div className="text-xl font-semibold text-slate-900 dark:text-slate-50">{value}</div>
-      <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{label}</div>
+    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3 text-center">
+      <div className="text-xl font-bold tracking-tight tabular-nums text-slate-900 dark:text-slate-50">{value}</div>
+      <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">{label}</div>
       {sub && <div className="text-[11px] text-slate-400 dark:text-slate-500">{sub}</div>}
     </div>
   )
@@ -33,7 +34,6 @@ export default function WeeklyScreen() {
   const avgCarbs = avg((d) => d.totals.carbs)
   const avgFat = avg((d) => d.totals.fat)
   const avgFiber = avg((d) => d.totals.fiber)
-  const avgWater = avg((d) => d.waterMl || 0)
 
   const inVsTarget = Math.round(avg((d) => d.totals.caloriesIn) - profile.targetCalories)
   const proteinHitDays = days.filter((d) => d.totals.protein >= profile.targetProtein).length
@@ -49,11 +49,14 @@ export default function WeeklyScreen() {
     weightEntries.length >= 2 ? weightEntries[weightEntries.length - 1].kg - weightEntries[0].kg : null
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6 pb-24 flex flex-col gap-5">
-      <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-50">This week</h1>
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-28 flex flex-col gap-4">
+      <header>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">This week</h1>
+        <p className="text-[13px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">Last 7 days</p>
+      </header>
 
-      <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
-        <h2 className="font-medium text-slate-700 dark:text-slate-300 mb-3">Calories</h2>
+      <section className={`${card} p-4`}>
+        <h2 className={`${sectionLabel} mb-3`}>Calories</h2>
         <div className="grid grid-cols-2 gap-2">
           <StatTile label="Daily average" value={avg((d) => d.totals.caloriesIn)} sub={`${totalIn} total`} />
           <StatTile
@@ -67,8 +70,8 @@ export default function WeeklyScreen() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
-        <h2 className="font-medium text-slate-700 dark:text-slate-300 mb-3">Weight</h2>
+      <section className={`${card} p-4`}>
+        <h2 className={`${sectionLabel} mb-3`}>Weight</h2>
         {weightData.length >= 2 ? (
           <>
             <div className="grid grid-cols-2 gap-2 mb-3">
@@ -88,26 +91,17 @@ export default function WeeklyScreen() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
-        <h2 className="font-medium text-slate-700 dark:text-slate-300 mb-3">Average macros</h2>
+      <section className={`${card} p-4`}>
+        <h2 className={`${sectionLabel} mb-3`}>Average macros</h2>
         <div className="grid grid-cols-4 gap-2">
           <StatTile label="Protein" value={`${avgProtein}g`} />
           <StatTile label="Carbs" value={`${avgCarbs}g`} />
           <StatTile label="Fat" value={`${avgFat}g`} />
           <StatTile label="Fiber" value={`${avgFiber}g`} />
         </div>
-        <p className="text-sm text-center mt-3 text-slate-600 dark:text-slate-300">
+        <p className="text-[13px] text-center mt-3 text-slate-600 dark:text-slate-300">
           You hit your protein goal {proteinHitDays} of {n} days
         </p>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
-        <h2 className="font-medium text-slate-700 dark:text-slate-300 mb-3">Water</h2>
-        <StatTile
-          label="Daily average"
-          value={`${(avgWater / 1000).toFixed(1)}L`}
-          sub={`goal ${(profile.targetWaterMl / 1000).toFixed(1)}L`}
-        />
       </section>
 
       {trackedDays.length === 0 && (

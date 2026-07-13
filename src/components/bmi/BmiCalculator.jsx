@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { getProfile } from '../../lib/storage'
 import { calculateBMI, bmiCategory } from '../../lib/calculations'
+import { card } from '../../lib/ui'
 
 const inputClass =
   'w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-lg text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500'
@@ -23,10 +24,13 @@ export default function BmiCalculator() {
   const category = bmi ? bmiCategory(bmi) : null
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6 pb-24 flex flex-col gap-5">
-      <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-50">BMI Calculator</h1>
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-28 flex flex-col gap-4">
+      <header>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">BMI</h1>
+        <p className="text-[13px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">Body mass index calculator</p>
+      </header>
 
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 flex flex-col gap-4">
+      <div className={`${card} p-4 flex flex-col gap-4`}>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm text-slate-500 dark:text-slate-400 mb-1">Height (ft)</label>
@@ -44,9 +48,9 @@ export default function BmiCalculator() {
       </div>
 
       {bmi && (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 text-center">
-          <div className="text-4xl font-bold text-slate-900 dark:text-slate-50">{bmi.toFixed(1)}</div>
-          <div className={`mt-1 font-medium ${CATEGORY_COLORS[category]}`}>{category}</div>
+        <div className={`${card} p-6 text-center`}>
+          <div className="text-5xl font-bold tracking-tight tabular-nums text-slate-900 dark:text-slate-50">{bmi.toFixed(1)}</div>
+          <div className={`mt-1.5 font-semibold ${CATEGORY_COLORS[category]}`}>{category}</div>
         </div>
       )}
     </div>

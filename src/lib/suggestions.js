@@ -5,7 +5,7 @@ function average(nums) {
 }
 
 // Deterministic, goal-aware fallback used when the AI suggestion call is unavailable.
-// Numbers-only: never names foods. days: [{ dateKey, totals, waterMl }], oldest -> newest.
+// Numbers-only: never names foods. days: [{ dateKey, totals }], oldest -> newest.
 export function generateSuggestions(days, targets) {
   if (!targets) return []
 

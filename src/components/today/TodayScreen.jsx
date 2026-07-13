@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
 import QuickAddFood from './QuickAddFood'
 import RecentMeals from './RecentMeals'
-import WaterTracker from './WaterTracker'
 import WeightCard from './WeightCard'
 import SummaryCard from './SummaryCard'
 import InsightsCard from './InsightsCard'
@@ -16,19 +15,18 @@ import {
   addFoodEntry,
   updateFoodEntry,
   deleteFoodEntry,
-  addWater,
-  setWater,
   getProfile,
   getRecentMeals,
 } from '../../lib/storage'
-import { todayKey, addDays, formatDisplayDate, last7DayKeys } from '../../lib/dateUtils'
+import { todayKey, addDays, formatDisplayDate, formatFullDate, last7DayKeys } from '../../lib/dateUtils'
+import { sectionLabel, iconButton } from '../../lib/ui'
 
 const TOAST_TIMEOUT_MS = 8000
 
 export default function TodayScreen() {
   const profile = getProfile()
   const [selectedDate, setSelectedDate] = useState(todayKey())
-  const [viewMode, setViewMode] = useState('list')
+  const [showCalendar, setShowCalendar] = useState(false)
   const [, setRefreshTick] = useState(0)
   const [toastEntry, setToastEntry] = useState(null)
   const [editing, setEditing] = useState(null)
@@ -86,19 +84,9 @@ export default function TodayScreen() {
     setEditing(null)
   }
 
-  function handleAddWater(ml) {
-    addWater(selectedDate, ml)
-    refresh()
-  }
-
-  function handleSetWater(ml) {
-    setWater(selectedDate, ml)
-    refresh()
-  }
-
   function handleSelectDate(key) {
     setSelectedDate(key)
-    setViewMode('list')
+    setShowCalendar(false)
   }
 
   const isToday = selectedDate === todayKey()
@@ -107,16 +95,56 @@ export default function TodayScreen() {
 
   const trailingDays = last7DayKeys().map((key) => {
     const day = getDailyLog(key)
-    return { dateKey: key, totals: day.totals, waterMl: day.waterMl }
+    return { dateKey: key, totals: day.totals }
   })
   const recentMeals = getRecentMeals()
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6 pb-24 flex flex-col gap-5">
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-28 flex flex-col gap-4">
+      <header className="flex items-center justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+            {isToday ? 'Today' : formatDisplayDate(selectedDate)}
+          </h1>
+          <p className="text-[13px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">
+            {formatFullDate(selectedDate)}
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => setSelectedDate((d) => addDays(d, -1))}
+            aria-label="Previous day"
+            className={iconButton}
+          >
+            <ChevronLeft size={17} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedDate((d) => addDays(d, 1))}
+            disabled={isToday}
+            aria-label="Next day"
+            className={iconButton}
+          >
+            <ChevronRight size={17} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowCalendar((v) => !v)}
+            aria-label="Open calendar"
+            className={`${iconButton} ${showCalendar ? '!text-brand-600 dark:!text-brand-400 !border-brand-300 dark:!border-brand-800' : ''}`}
+          >
+            <CalendarDays size={16} />
+          </button>
+        </div>
+      </header>
+
+      {showCalendar && <CalendarView selectedDate={selectedDate} onSelectDate={handleSelectDate} />}
+
       {!isFuture && (
         <div className="flex flex-col gap-2">
           {!isToday && (
-            <p className="text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-2.5">
+            <p className="text-[13px] font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200/80 dark:border-amber-800/60 rounded-xl px-4 py-2.5">
               Adding food to {formatDisplayDate(selectedDate)}
             </p>
           )}
@@ -132,78 +160,21 @@ export default function TodayScreen() {
         <LoggedToast entry={toastEntry} onEdit={handleEditFromToast} onDismiss={() => setToastEntry(null)} />
       )}
 
-      {isToday && (
-        <WaterTracker
-          waterMl={log.waterMl}
-          targetMl={profile.targetWaterMl}
-          onAdd={handleAddWater}
-          onSet={handleSetWater}
-        />
-      )}
+      <SummaryCard totals={log.totals} targets={profile} />
 
       {isToday && <WeightCard onLogged={refresh} />}
 
-      <SummaryCard totals={log.totals} targets={profile} />
-
       {isToday && (
         <>
-          <InsightsCard totals={log.totals} waterMl={log.waterMl} profile={profile} trailingDays={trailingDays} />
-          <AiSuggestionsCard totals={log.totals} waterMl={log.waterMl} profile={profile} trailingDays={trailingDays} />
+          <InsightsCard totals={log.totals} profile={profile} trailingDays={trailingDays} />
+          <AiSuggestionsCard totals={log.totals} profile={profile} trailingDays={trailingDays} />
         </>
       )}
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {viewMode === 'list' && (
-            <>
-              <button
-                type="button"
-                onClick={() => setSelectedDate((d) => addDays(d, -1))}
-                aria-label="Previous day"
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <h2 className="font-semibold text-slate-800 dark:text-slate-100 w-32 text-center">
-                {isToday ? 'Today' : formatDisplayDate(selectedDate)}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setSelectedDate((d) => addDays(d, 1))}
-                disabled={isToday}
-                aria-label="Next day"
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 disabled:opacity-30 flex items-center justify-center"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </>
-          )}
-          {viewMode === 'calendar' && <h2 className="font-semibold text-slate-800 dark:text-slate-100">Calendar</h2>}
-        </div>
-
-        <div className="flex rounded-lg bg-slate-100 dark:bg-slate-800 p-0.5 text-sm">
-          <button
-            type="button"
-            onClick={() => setViewMode('list')}
-            className={`px-3 py-1 rounded-md ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm font-medium' : 'text-slate-500 dark:text-slate-400'}`}
-          >
-            List
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('calendar')}
-            className={`px-3 py-1 rounded-md ${viewMode === 'calendar' ? 'bg-white dark:bg-slate-700 shadow-sm font-medium' : 'text-slate-500 dark:text-slate-400'}`}
-          >
-            Calendar
-          </button>
-        </div>
-      </div>
-
-      {viewMode === 'list' ? (
+      <div className="mt-1">
+        <h2 className={`${sectionLabel} px-1 mb-2`}>{isToday ? "Today's log" : 'Log'}</h2>
         <LogList log={log} canLog={!isFuture} onSelectEntry={(entry) => setEditing(entry)} />
-      ) : (
-        <CalendarView selectedDate={selectedDate} onSelectDate={handleSelectDate} />
-      )}
+      </div>
 
       {editing && (
         <EditEntryModal entry={editing} onSave={handleSaveEdit} onDelete={handleDeleteEdit} onClose={() => setEditing(null)} />

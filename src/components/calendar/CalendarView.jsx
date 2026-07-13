@@ -13,7 +13,7 @@ export default function CalendarView({ selectedDate, onSelectDate }) {
 
   const loggedDays = new Set()
   for (const [key, day] of Object.entries(getAllDailyLogs())) {
-    if (day.foodEntries?.length || day.waterMl > 0) loggedDays.add(key)
+    if (day.foodEntries?.length) loggedDays.add(key)
   }
 
   const today = todayKey()
@@ -31,7 +31,7 @@ export default function CalendarView({ selectedDate, onSelectDate }) {
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
+    <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm shadow-slate-900/[0.03] dark:shadow-none p-4">
       <div className="flex items-center justify-between mb-3">
         <button
           type="button"

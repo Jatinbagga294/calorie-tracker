@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { getProfile, updateProfile } from '../../lib/storage'
 import { ACTIVITY_LEVELS, GOALS, calculateAllTargets } from '../../lib/calculations'
+import { card, sectionLabel } from '../../lib/ui'
 
 const inputClass =
   'w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500'
@@ -37,7 +38,6 @@ export default function ProfileScreen() {
       targetCarbs: Number(form.targetCarbs),
       targetFat: Number(form.targetFat),
       targetFiber: Number(form.targetFiber),
-      targetWaterMl: Number(form.targetWaterMl),
     }
     updateProfile(numeric)
     setForm(numeric)
@@ -60,11 +60,14 @@ export default function ProfileScreen() {
   if (!form) return null
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6 pb-28 flex flex-col gap-6">
-      <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-50">Profile</h1>
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-28 flex flex-col gap-4">
+      <header>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Profile</h1>
+        <p className="text-[13px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">Your stats and daily targets</p>
+      </header>
 
-      <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 flex flex-col gap-4">
-        <h2 className="font-medium text-slate-700 dark:text-slate-300">Personal info</h2>
+      <section className={`${card} p-4 flex flex-col gap-4`}>
+        <h2 className={sectionLabel}>Personal info</h2>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Age">
             <input type="number" className={inputClass} value={form.age} onChange={(e) => set('age', e.target.value)} />
@@ -114,19 +117,16 @@ export default function ProfileScreen() {
         </Field>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 flex flex-col gap-4">
+      <section className={`${card} p-4 flex flex-col gap-4`}>
         <div className="flex items-center justify-between">
-          <h2 className="font-medium text-slate-700 dark:text-slate-300">Daily targets</h2>
-          <button type="button" onClick={recalculate} className="text-sm font-medium text-brand-600 dark:text-brand-400">
+          <h2 className={sectionLabel}>Daily targets</h2>
+          <button type="button" onClick={recalculate} className="text-sm font-semibold text-brand-600 dark:text-brand-400">
             Recalculate
           </button>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Calories">
             <input type="number" className={inputClass} value={form.targetCalories} onChange={(e) => set('targetCalories', e.target.value)} />
-          </Field>
-          <Field label="Water (ml)">
-            <input type="number" className={inputClass} value={form.targetWaterMl} onChange={(e) => set('targetWaterMl', e.target.value)} />
           </Field>
           <Field label="Protein (g)">
             <input type="number" className={inputClass} value={form.targetProtein} onChange={(e) => set('targetProtein', e.target.value)} />
@@ -143,7 +143,11 @@ export default function ProfileScreen() {
         </div>
       </section>
 
-      <button type="button" onClick={save} className="px-5 py-3 rounded-xl font-medium text-white bg-brand-600">
+      <button
+        type="button"
+        onClick={save}
+        className="px-5 py-3.5 rounded-2xl font-semibold text-white bg-brand-600 hover:bg-brand-700 active:scale-[0.99] transition-all"
+      >
         Save changes
       </button>
       {savedAt && <p className="text-center text-sm text-brand-600 dark:text-brand-400">Saved.</p>}
