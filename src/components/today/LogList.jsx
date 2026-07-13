@@ -4,13 +4,13 @@ function formatTime(ts) {
   return new Date(ts).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
 }
 
-export default function LogList({ log, onSelectEntry }) {
+export default function LogList({ log, onSelectEntry, canLog = true }) {
   const entries = [...log.foodEntries].sort((a, b) => b.timestamp - a.timestamp)
 
   if (entries.length === 0) {
     return (
       <p className="text-center text-slate-400 dark:text-slate-500 py-8 text-sm">
-        Nothing logged yet — type what you ate above.
+        {canLog ? 'Nothing logged yet — type what you ate above.' : 'Nothing logged for this day.'}
       </p>
     )
   }

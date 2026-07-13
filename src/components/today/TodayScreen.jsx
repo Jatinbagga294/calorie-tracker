@@ -102,6 +102,8 @@ export default function TodayScreen() {
   }
 
   const isToday = selectedDate === todayKey()
+  // YYYY-MM-DD keys compare correctly as strings.
+  const isFuture = selectedDate > todayKey()
 
   const trailingDays = last7DayKeys().map((key) => {
     const day = getDailyLog(key)
@@ -111,9 +113,17 @@ export default function TodayScreen() {
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-24 flex flex-col gap-5">
-      {isToday && (
+      {!isFuture && (
         <div className="flex flex-col gap-2">
-          <QuickAddFood onLogged={handleFoodLogged} />
+          {!isToday && (
+            <p className="text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-2.5">
+              Adding food to {formatDisplayDate(selectedDate)}
+            </p>
+          )}
+          <QuickAddFood
+            onLogged={handleFoodLogged}
+            placeholder={isToday ? undefined : `What did you eat on ${formatDisplayDate(selectedDate)}?`}
+          />
           <RecentMeals meals={recentMeals} onRelog={handleRelog} />
         </div>
       )}
@@ -190,7 +200,7 @@ export default function TodayScreen() {
       </div>
 
       {viewMode === 'list' ? (
-        <LogList log={log} onSelectEntry={(entry) => setEditing(entry)} />
+        <LogList log={log} canLog={!isFuture} onSelectEntry={(entry) => setEditing(entry)} />
       ) : (
         <CalendarView selectedDate={selectedDate} onSelectDate={handleSelectDate} />
       )}

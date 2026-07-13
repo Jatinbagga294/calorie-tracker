@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Utensils, Loader2 } from 'lucide-react'
 import { parseFoodText } from '../../lib/gemini'
 
-export default function QuickAddFood({ onLogged }) {
+export default function QuickAddFood({ onLogged, placeholder = 'What did you eat?' }) {
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -31,7 +31,7 @@ export default function QuickAddFood({ onLogged }) {
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="What did you eat?"
+          placeholder={placeholder}
           className="flex-1 min-w-0 bg-transparent outline-none text-base text-slate-900 dark:text-slate-50 placeholder:text-slate-400"
           disabled={loading}
         />
