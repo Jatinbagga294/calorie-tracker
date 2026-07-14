@@ -7,7 +7,7 @@ function Chip({ label, value, over }) {
     <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 px-3 py-2.5 text-center">
       <div
         className={`text-lg font-bold tabular-nums tracking-tight ${
-          over ? 'text-amber-600 dark:text-amber-400' : 'text-slate-900 dark:text-slate-50'
+          over ? 'text-red-500 dark:text-red-300' : 'text-slate-900 dark:text-slate-100'
         }`}
       >
         {value}

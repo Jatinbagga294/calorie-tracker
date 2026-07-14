@@ -20,7 +20,7 @@ export default function WeightChart({ data }) {
             wrapperClassName="dark:[&>div]:!bg-slate-800 dark:[&>div]:!text-slate-100"
             formatter={(value) => [`${value} kg`, 'Weight']}
           />
-          <Line type="monotone" dataKey="kg" name="Weight" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 3 }} />
+          <Line type="monotone" dataKey="kg" name="Weight" stroke="#5f7590" strokeWidth={2} dot={{ r: 3 }} />
         </LineChart>
       </ResponsiveContainer>
     </div>

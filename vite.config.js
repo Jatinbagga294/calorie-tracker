@@ -1,3 +1,4 @@
+import process from 'node:process'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -16,11 +17,15 @@ export default defineConfig({
       manifest: {
         name: 'Calorie Tracker',
         short_name: 'Calories',
-        description: 'Log food in plain English, track calories, macros, water and weight.',
-        theme_color: '#16a34a',
-        background_color: '#0f172a',
+        description: 'Log food in plain English, by photo or barcode. Calories and macros, no fuss.',
+        theme_color: '#f4f4f1',
+        background_color: '#f4f4f1',
         display: 'standalone',
+        orientation: 'portrait',
         start_url: '/',
+        id: '/',
+        scope: '/',
+        categories: ['health', 'lifestyle'],
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },

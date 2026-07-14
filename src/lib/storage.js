@@ -1,8 +1,11 @@
-import { todayKey, addDays } from './dateUtils.js'
+import { todayKey } from './dateUtils.js'
 
 const PROFILE_KEY = 'calorie_tracker_profile'
 const LOGS_KEY = 'calorie_tracker_daily_logs'
 const WEIGHT_KEY = 'calorie_tracker_weight_log'
+
+const SCHEMA_VERSION_KEY = 'calorie_tracker_schema_version'
+const SCHEMA_VERSION = 2
 
 function readJSON(key, fallback) {
   try {
@@ -14,7 +17,29 @@ function readJSON(key, fallback) {
 }
 
 function writeJSON(key, value) {
-  localStorage.setItem(key, JSON.stringify(value))
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch (err) {
+    // Storage full: corrections are the only prunable data (learning signals,
+    // not user logs). Drop them and retry before giving up.
+    try {
+      localStorage.removeItem('calorie_tracker_corrections')
+      localStorage.setItem(key, JSON.stringify(value))
+      return
+    } catch {
+      // fall through
+    }
+    throw new Error('Storage is full on this device. Delete some old log entries to keep saving.', { cause: err })
+  }
+}
+
+// Runs once per app start. v2 adds the correction store (additive, nothing to
+// rewrite) and stamps the version so future schema changes know where they
+// start from. Old builds' exercise/water fields are normalized lazily below.
+export function migrateStorage() {
+  const current = readJSON(SCHEMA_VERSION_KEY, 1)
+  if (current === SCHEMA_VERSION) return
+  writeJSON(SCHEMA_VERSION_KEY, SCHEMA_VERSION)
 }
 
 function emptyDay() {
@@ -142,32 +167,4 @@ export function getWeightEntries() {
   return Object.entries(getWeightLog())
     .map(([dateKey, kg]) => ({ dateKey, kg }))
     .sort((a, b) => (a.dateKey < b.dateKey ? -1 : 1))
-}
-
-// ---- Recent meals (for tap-to-relog) ----
-
-// Most frequent/recent meals from the last `windowDays`, deduped by text.
-export function getRecentMeals(limit = 6, windowDays = 14) {
-  const logs = getAllDailyLogs()
-  const cutoff = addDays(todayKey(), -windowDays)
-  const byText = new Map()
-
-  for (const [key, day] of Object.entries(logs)) {
-    if (key < cutoff) continue
-    for (const entry of day.foodEntries || []) {
-      if (!entry.rawText) continue
-      const norm = entry.rawText.trim().toLowerCase()
-      const existing = byText.get(norm)
-      if (existing) {
-        existing.count += 1
-        if (entry.timestamp > existing.timestamp) Object.assign(existing, { ...entry, count: existing.count })
-      } else {
-        byText.set(norm, { ...entry, count: 1 })
-      }
-    }
-  }
-
-  return [...byText.values()]
-    .sort((a, b) => b.count - a.count || b.timestamp - a.timestamp)
-    .slice(0, limit)
 }

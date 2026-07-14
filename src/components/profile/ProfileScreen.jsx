@@ -1,7 +1,43 @@
 import { useState } from 'react'
 import { getProfile, updateProfile } from '../../lib/storage'
 import { ACTIVITY_LEVELS, GOALS, calculateAllTargets } from '../../lib/calculations'
-import { card, sectionLabel } from '../../lib/ui'
+import { getThemePreference, setThemePreference } from '../../lib/theme'
+import { card, sectionLabel, pageTitle, pageSubtitle } from '../../lib/ui'
+
+const THEME_OPTIONS = [
+  { value: 'system', label: 'Auto' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+]
+
+function ThemeToggle() {
+  const [pref, setPref] = useState(getThemePreference)
+
+  function choose(value) {
+    setThemePreference(value)
+    setPref(value)
+  }
+
+  return (
+    <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-800">
+      {THEME_OPTIONS.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => choose(opt.value)}
+          aria-pressed={pref === opt.value}
+          className={`min-h-11 rounded-lg text-sm font-medium transition-colors ${
+            pref === opt.value
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm shadow-slate-900/[0.06] dark:shadow-none'
+              : 'text-slate-500 dark:text-slate-400'
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 const inputClass =
   'w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500'
@@ -62,9 +98,14 @@ export default function ProfileScreen() {
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-28 flex flex-col gap-4">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Profile</h1>
-        <p className="text-[13px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">Your stats and daily targets</p>
+        <h1 className={pageTitle}>Profile</h1>
+        <p className={pageSubtitle}>Your stats and daily targets</p>
       </header>
+
+      <section className={`${card} p-4 flex flex-col gap-3`}>
+        <h2 className={sectionLabel}>Appearance</h2>
+        <ThemeToggle />
+      </section>
 
       <section className={`${card} p-4 flex flex-col gap-4`}>
         <h2 className={sectionLabel}>Personal info</h2>

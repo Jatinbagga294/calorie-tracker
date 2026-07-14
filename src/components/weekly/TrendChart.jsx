@@ -15,12 +15,12 @@ export default function TrendChart({ data, target }) {
           {target > 0 && (
             <ReferenceLine
               y={target}
-              stroke="#94a3b8"
+              stroke="#a8a59b"
               strokeDasharray="4 4"
-              label={{ value: 'target', fontSize: 11, fill: '#94a3b8', position: 'insideTopRight' }}
+              label={{ value: 'target', fontSize: 11, fill: '#a8a59b', position: 'insideTopRight' }}
             />
           )}
-          <Line type="monotone" dataKey="in" name="Calories" stroke="#16a34a" strokeWidth={2} dot={{ r: 3 }} />
+          <Line type="monotone" dataKey="in" name="Calories" stroke="#b97f42" strokeWidth={2} dot={{ r: 3 }} />
         </LineChart>
       </ResponsiveContainer>
     </div>

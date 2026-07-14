@@ -1,39 +1,103 @@
 @import "tailwindcss";
 
+/* Manual theme toggle: `.dark` on <html> wins; index.html sets it before paint. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  --color-brand-50: #f0fdf4;
-  --color-brand-100: #dcfce7;
-  --color-brand-200: #bbf7d0;
-  --color-brand-300: #86efac;
-  --color-brand-400: #4ade80;
-  --color-brand-500: #22c55e;
-  --color-brand-600: #16a34a;
-  --color-brand-700: #15803d;
-  --color-brand-800: #166534;
-  --color-brand-900: #14532d;
+  /* Warm stone neutrals replace the default slate ramp app-wide. */
+  --color-slate-50: #fafaf8;
+  --color-slate-100: #f4f4f1;
+  --color-slate-200: #e7e6e1;
+  --color-slate-300: #d6d4cd;
+  --color-slate-400: #a8a59b;
+  --color-slate-500: #7c796f;
+  --color-slate-600: #5f5c53;
+  --color-slate-700: #4a4740;
+  /* 800/900/950 double as dark-mode border, card, and page surfaces. */
+  --color-slate-800: #2c2b27;
+  --color-slate-900: #201f1c;
+  --color-slate-950: #151412;
+
+  /* Caramel accent. One accent, used sparingly. */
+  --color-brand-50: #faf5ee;
+  --color-brand-100: #f3e8d8;
+  --color-brand-200: #e5cda9;
+  --color-brand-300: #d9b385;
+  --color-brand-400: #cc9a60;
+  --color-brand-500: #b97f42;
+  --color-brand-600: #9a6231;
+  --color-brand-700: #7c4e28;
+  --color-brand-800: #5e3b20;
+  --color-brand-900: #422a18;
+  --color-brand-950: #2a1b0f;
+
+  /* Muted brick for "off plan" states; never a shouting red. */
+  --color-red-50: #faf1f0;
+  --color-red-100: #f4dedc;
+  --color-red-200: #e5b5b1;
+  --color-red-300: #d68f89;
+  --color-red-400: #c96f68;
+  --color-red-500: #b4524b;
+  --color-red-600: #9a423c;
+  --color-red-700: #7c342f;
+  --color-red-800: #5e2723;
+  --color-red-900: #421b18;
+
+  /* Macro hues, all pulled to similar muted chroma so nothing shouts. */
+  --color-macro-protein: #8e5a6b;
+  --color-macro-protein-dark: #c08ca0;
+  --color-macro-carbs: #a2823a;
+  --color-macro-carbs-dark: #cbb068;
+  --color-macro-fat: #5f7590;
+  --color-macro-fat-dark: #8fa5be;
+  --color-macro-fiber: #6b7d53;
+  --color-macro-fiber-dark: #9aaf7e;
+
+  --font-display: 'Bricolage Grotesque Variable', 'Inter Variable', system-ui, sans-serif;
+  --font-sans: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 html {
-  color-scheme: light dark;
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
 }
 
 body {
   margin: 0;
-  font-family: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: #f4f4f1;
+  color: #201f1c;
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #020617;
-    color: #f8fafc;
-  }
+.dark body {
+  background-color: #151412;
+  color: #eae8e2;
+}
+
+.dark {
+  /* Slightly cooler light greys read better as dark-mode text. */
+  --color-slate-100: #eae8e2;
+  --color-slate-200: #d9d7d0;
+  --color-slate-300: #bdbab2;
 }
 
 #root {
   min-height: 100svh;
+}
+
+/* Numbers are the content; they must never jitter as they update. */
+.tabular-nums,
+input[type='number'] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Display face for headers and the hero number. */
+.font-display {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Hide number input spinners; every numeric field here has its own affordance. */
@@ -48,6 +112,23 @@ input[type='number'] {
 }
 
 ::selection {
-  background-color: #bbf7d0;
-  color: #14532d;
+  background-color: #e5cda9;
+  color: #2a1b0f;
+}
+
+/* Keyboard focus is always visible; pointer focus stays quiet. */
+:focus-visible {
+  outline: 2px solid #b97f42;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

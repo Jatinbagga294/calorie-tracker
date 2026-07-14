@@ -16,10 +16,10 @@ import {
   updateFoodEntry,
   deleteFoodEntry,
   getProfile,
-  getRecentMeals,
 } from '../../lib/storage'
+import { getRankedChips } from '../../lib/recents'
 import { todayKey, addDays, formatDisplayDate, formatFullDate, last7DayKeys } from '../../lib/dateUtils'
-import { sectionLabel, iconButton } from '../../lib/ui'
+import { sectionLabel, iconButton, pageTitle, pageSubtitle } from '../../lib/ui'
 
 const TOAST_TIMEOUT_MS = 8000
 
@@ -53,17 +53,24 @@ export default function TodayScreen() {
     showToast(entry)
   }
 
-  function handleRelog(meal) {
-    const entry = addFoodEntry(selectedDate, {
-      rawText: meal.rawText,
-      calories: meal.calories,
-      protein: meal.protein,
-      carbs: meal.carbs,
-      fat: meal.fat,
-      fiber: meal.fiber,
-    })
+  // Chips pass one meal (single) or two (combo); photo logging passes each
+  // plate item. Every meal becomes its own entry so history and pair
+  // detection keep working.
+  function handleRelog(meals) {
+    let lastEntry = null
+    for (const meal of meals) {
+      lastEntry = addFoodEntry(selectedDate, {
+        rawText: meal.rawText,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+        fiber: meal.fiber,
+        ...(meal.grams != null ? { grams: meal.grams } : {}),
+      })
+    }
     refresh()
-    showToast(entry)
+    if (lastEntry) showToast(lastEntry)
   }
 
   function handleEditFromToast() {
@@ -97,18 +104,14 @@ export default function TodayScreen() {
     const day = getDailyLog(key)
     return { dateKey: key, totals: day.totals }
   })
-  const recentMeals = getRecentMeals()
+  const recentChips = getRankedChips()
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-28 flex flex-col gap-4">
       <header className="flex items-center justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
-            {isToday ? 'Today' : formatDisplayDate(selectedDate)}
-          </h1>
-          <p className="text-[13px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">
-            {formatFullDate(selectedDate)}
-          </p>
+          <h1 className={pageTitle}>{isToday ? 'Today' : formatDisplayDate(selectedDate)}</h1>
+          <p className={pageSubtitle}>{formatFullDate(selectedDate)}</p>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <button
@@ -144,15 +147,16 @@ export default function TodayScreen() {
       {!isFuture && (
         <div className="flex flex-col gap-2">
           {!isToday && (
-            <p className="text-[13px] font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200/80 dark:border-amber-800/60 rounded-xl px-4 py-2.5">
+            <p className="text-[13px] font-medium text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-900/25 border border-brand-200/70 dark:border-brand-800/50 rounded-xl px-4 py-2.5">
               Adding food to {formatDisplayDate(selectedDate)}
             </p>
           )}
+          <RecentMeals chips={recentChips} onRelog={handleRelog} />
           <QuickAddFood
             onLogged={handleFoodLogged}
+            onLoggedMany={handleRelog}
             placeholder={isToday ? undefined : `What did you eat on ${formatDisplayDate(selectedDate)}?`}
           />
-          <RecentMeals meals={recentMeals} onRelog={handleRelog} />
         </div>
       )}
 
@@ -160,7 +164,7 @@ export default function TodayScreen() {
         <LoggedToast entry={toastEntry} onEdit={handleEditFromToast} onDismiss={() => setToastEntry(null)} />
       )}
 
-      <SummaryCard totals={log.totals} targets={profile} />
+      <SummaryCard totals={log.totals} targets={profile} entries={log.foodEntries} />
 
       {isToday && <WeightCard onLogged={refresh} />}
 

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { getProfile } from '../../lib/storage'
 import { calculateBMI, bmiCategory } from '../../lib/calculations'
-import { card } from '../../lib/ui'
+import { card, pageTitle, pageSubtitle } from '../../lib/ui'
 
 const inputClass =
   'w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-lg text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500'
@@ -9,7 +9,7 @@ const inputClass =
 const CATEGORY_COLORS = {
   Underweight: 'text-sky-600 dark:text-sky-400',
   Normal: 'text-brand-600 dark:text-brand-400',
-  Overweight: 'text-amber-600 dark:text-amber-400',
+  Overweight: 'text-brand-600 dark:text-brand-400',
   Obese: 'text-red-600 dark:text-red-400',
 }
 
@@ -26,8 +26,8 @@ export default function BmiCalculator() {
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-28 flex flex-col gap-4">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">BMI</h1>
-        <p className="text-[13px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">Body mass index calculator</p>
+        <h1 className={pageTitle}>BMI</h1>
+        <p className={pageSubtitle}>Body mass index calculator</p>
       </header>
 
       <div className={`${card} p-4 flex flex-col gap-4`}>
@@ -49,7 +49,7 @@ export default function BmiCalculator() {
 
       {bmi && (
         <div className={`${card} p-6 text-center`}>
-          <div className="text-5xl font-bold tracking-tight tabular-nums text-slate-900 dark:text-slate-50">{bmi.toFixed(1)}</div>
+          <div className="font-display text-5xl font-bold tracking-tight tabular-nums text-slate-900 dark:text-slate-100">{bmi.toFixed(1)}</div>
           <div className={`mt-1.5 font-semibold ${CATEGORY_COLORS[category]}`}>{category}</div>
         </div>
       )}

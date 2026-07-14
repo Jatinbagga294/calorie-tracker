@@ -32,7 +32,7 @@ export default function WeightCard({ onLogged }) {
             {' · '}
             {latest.dateKey === todayKey() ? 'today' : formatDisplayDate(latest.dateKey)}
             {delta !== null && Math.abs(delta) >= 0.05 && (
-              <span className={delta < 0 ? 'text-brand-600 dark:text-brand-400' : 'text-amber-600 dark:text-amber-400'}>
+              <span className="text-slate-400 dark:text-slate-500">
                 {' '}
                 ({delta > 0 ? '+' : ''}
                 {delta.toFixed(1)})

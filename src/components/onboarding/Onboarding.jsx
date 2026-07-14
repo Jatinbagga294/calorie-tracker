@@ -20,7 +20,7 @@ function StepShell({ stepIdx, title, subtitle, children, onBack, onNext, nextDis
         ))}
       </div>
 
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50 mb-1">{title}</h1>
+      <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 mb-1">{title}</h1>
       {subtitle && <p className="text-slate-500 dark:text-slate-400 text-sm">{subtitle}</p>}
 
       <form

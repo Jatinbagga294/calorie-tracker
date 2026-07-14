@@ -11,6 +11,16 @@ const MODEL_CHAIN = [
   'gemini-flash-latest',
 ]
 
+// Vision is the highest-value, lowest-frequency call in the app, so it leads
+// with the stronger model and only then falls back to the cheap buckets.
+// Override per deployment with VITE_GEMINI_VISION_MODEL, no refactor needed.
+const VISION_MODEL_CHAIN = [
+  ...(import.meta.env.VITE_GEMINI_VISION_MODEL ? [import.meta.env.VITE_GEMINI_VISION_MODEL] : []),
+  'gemini-3-flash-preview',
+  'gemini-flash-lite-latest',
+  'gemini-flash-latest',
+]
+
 const endpoint = (model) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
 
@@ -115,7 +125,7 @@ Rules:
   over-enthusiasm. Plain and direct.`
 }
 
-async function callGeminiJSON(systemPrompt, contentsOrText, schema) {
+async function callGeminiJSON(systemPrompt, contentsOrText, schema, modelChain = MODEL_CHAIN) {
   if (!API_KEY) {
     throw new Error('Setup incomplete: missing API key.')
   }
@@ -135,7 +145,7 @@ async function callGeminiJSON(systemPrompt, contentsOrText, schema) {
   })
 
   let lastError = null
-  for (const model of MODEL_CHAIN) {
+  for (const model of modelChain) {
     if (exhaustedModels.has(model)) continue
 
     const res = await fetch(`${endpoint(model)}?key=${API_KEY}`, {
@@ -204,6 +214,90 @@ export async function parseFoodText(rawText) {
     fiber: round1(totals.fiber),
     items,
   }
+}
+
+// ---- Photo parsing ----
+
+const PHOTO_SCHEMA = {
+  type: 'object',
+  properties: {
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          householdAmount: { type: 'string' },
+          grams: { type: 'number' },
+          calories: { type: 'number' },
+          protein: { type: 'number' },
+          carbs: { type: 'number' },
+          fat: { type: 'number' },
+          fiber: { type: 'number' },
+          confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
+        },
+        required: ['name', 'householdAmount', 'grams', 'calories', 'protein', 'carbs', 'fat', 'fiber', 'confidence'],
+      },
+    },
+  },
+  required: ['items'],
+}
+
+function photoSystemPrompt(userContext) {
+  let context = ''
+  if (userContext?.frequent?.length) {
+    context += `\nThis user frequently eats: ${userContext.frequent.join(', ')}.`
+  }
+  if (userContext?.atThisHour?.length) {
+    context += `\nFoods they commonly eat around this hour (it is ${userContext.hour}:00 now): ${userContext.atThisHour.join(', ')}.`
+  }
+  const portions = Object.entries(userContext?.portionDefaults || {})
+  if (portions.length) {
+    context += `\nTheir confirmed typical portions, prefer these over generic guesses: ${portions
+      .map(([food, g]) => `${food} ~${g}g`)
+      .join(', ')}.`
+  }
+  const biases = Object.entries(userContext?.biasFactors || {})
+  if (biases.length) {
+    context += `\nPast corrections show your calorie estimates for these foods need scaling: ${biases
+      .map(([food, f]) => `${food} ×${f}`)
+      .join(', ')}. Apply these factors.`
+  }
+
+  return `You identify food in a photo for a calorie tracker. The user may eat Indian/South Asian
+dishes (roti, dal, sabzi, paneer, etc.) alongside Western foods.
+${context}
+
+Rules:
+- List each distinct food as its own item. If the photo contains no food, return an empty items array.
+- householdAmount is a plain household measure a person can eyeball: "1 cup", "2 rotis",
+  "1 medium bowl", "half a plate". Never grams in this field.
+- grams is your best internal estimate of the weight for that amount.
+- A single photo cannot reveal exact volume. Estimate conservatively from visual cues
+  (plate size, utensils, a hand if visible) and be honest in the confidence field.
+- confidence reflects identification AND portion certainty. Use "low" freely; a wrong
+  confident guess is worse than an honest uncertain one. Never invent a specific dish
+  when you can only see a category (say "curry" not "chicken tikka masala" if unsure).
+- Calories in kcal; protein/carbs/fat/fiber in grams, scaled to the estimated portion.`
+}
+
+// Parses a food photo into editable line items with confidence flags.
+// userContext: { frequent, atThisHour, hour, portionDefaults, biasFactors }.
+export async function parseFoodPhoto({ base64, mimeType, note, userContext }) {
+  const parts = [{ inlineData: { mimeType, data: base64 } }]
+  if (note?.trim()) parts.push({ text: `The user added: "${note.trim()}"` })
+  const contents = [{ role: 'user', parts }]
+
+  const { items } = await callGeminiJSON(photoSystemPrompt(userContext), contents, PHOTO_SCHEMA, VISION_MODEL_CHAIN)
+  return items.map((item) => ({
+    ...item,
+    calories: Math.round(item.calories || 0),
+    protein: round1(item.protein || 0),
+    carbs: round1(item.carbs || 0),
+    fat: round1(item.fat || 0),
+    fiber: round1(item.fiber || 0),
+    grams: Math.round(item.grams || 0),
+  }))
 }
 
 // Gets 2-4 personalized, goal-aware, numbers-only suggestions (no food recommendations).

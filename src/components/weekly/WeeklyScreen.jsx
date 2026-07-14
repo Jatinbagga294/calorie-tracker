@@ -2,7 +2,7 @@ import TrendChart from './TrendChart'
 import WeightChart from './WeightChart'
 import { getDailyLog, getProfile, getWeightEntries } from '../../lib/storage'
 import { last7DayKeys, parseDateKey, addDays, todayKey } from '../../lib/dateUtils'
-import { card, sectionLabel } from '../../lib/ui'
+import { card, sectionLabel, pageTitle, pageSubtitle } from '../../lib/ui'
 
 function StatTile({ label, value, sub }) {
   return (
@@ -51,8 +51,8 @@ export default function WeeklyScreen() {
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-28 flex flex-col gap-4">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">This week</h1>
-        <p className="text-[13px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">Last 7 days</p>
+        <h1 className={pageTitle}>This week</h1>
+        <p className={pageSubtitle}>Last 7 days</p>
       </header>
 
       <section className={`${card} p-4`}>

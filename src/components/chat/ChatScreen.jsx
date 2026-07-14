@@ -116,7 +116,7 @@ export default function ChatScreen() {
   return (
     <div className="max-w-lg mx-auto flex flex-col h-[100dvh] pb-14">
       <header className="flex items-center justify-between px-4 py-3 border-b border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md">
-        <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-50">Chat</h1>
+        <h1 className="font-display text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">Chat</h1>
         {messages.length > 0 && (
           <button
             type="button"
@@ -184,7 +184,7 @@ export default function ChatScreen() {
           type="submit"
           disabled={loading || !input.trim()}
           aria-label="Send"
-          className="shrink-0 w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center disabled:opacity-40"
+          className="shrink-0 w-11 h-11 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 flex items-center justify-center disabled:opacity-25"
         >
           <Send size={16} />
         </button>

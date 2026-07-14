@@ -5,9 +5,22 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
-    <meta name="theme-color" content="#16a34a" />
-    <meta name="description" content="Log food in plain English, track calories, macros, water and weight." />
+    <meta name="theme-color" content="#f4f4f1" />
+    <meta name="description" content="Log food in plain English, by photo or barcode. Calories and macros, no fuss." />
     <title>Calorie Tracker</title>
+    <script>
+      // Apply the saved theme before first paint to avoid a flash.
+      ;(function () {
+        try {
+          var saved = localStorage.getItem('calorie_tracker_theme')
+          var dark = saved === 'dark' || (saved !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          if (dark) {
+            document.documentElement.classList.add('dark')
+            document.querySelector('meta[name="theme-color"]').setAttribute('content', '#151412')
+          }
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
