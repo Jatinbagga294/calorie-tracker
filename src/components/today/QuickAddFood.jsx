@@ -5,7 +5,7 @@ import { searchProducts, lookupBarcode, looksLikeBrandedProduct } from '../../li
 import { getFoodHistoryContext } from '../../lib/recents'
 import { getPortionDefaults, getBiasFactors, recordCorrection } from '../../lib/corrections'
 import { compressImage } from '../../lib/image'
-import { isSpeechRecognitionSupported, startListening, requestMicAccess, micPermissionInstructions } from '../../lib/speech'
+import { isSpeechRecognitionSupported, startListening, requestMicAccess, micPermissionSteps } from '../../lib/speech'
 import BarcodeScanner from './BarcodeScanner'
 import ProductConfirmSheet from './ProductConfirmSheet'
 import PhotoConfirmSheet from './PhotoConfirmSheet'
@@ -28,6 +28,7 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
   const [photoItems, setPhotoItems] = useState(null)
   const [listening, setListening] = useState(false)
   const [requestingMic, setRequestingMic] = useState(false)
+  const [micBlockedSteps, setMicBlockedSteps] = useState(null)
   const fileInputRef = useRef(null)
   const debounceRef = useRef(null)
   const searchSeq = useRef(0)
@@ -69,16 +70,14 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
       return
     }
     setError('')
+    setMicBlockedSteps(null)
     setRequestingMic(true)
     try {
       await requestMicAccess()
     } catch (err) {
       setRequestingMic(false)
-      setError(
-        err.name === 'NotFoundError'
-          ? 'No microphone found on this device.'
-          : `Microphone access is blocked for this site. ${micPermissionInstructions()}`,
-      )
+      if (err.name === 'NotFoundError') setError('No microphone found on this device.')
+      else setMicBlockedSteps(micPermissionSteps())
       return
     }
     setRequestingMic(false)
@@ -88,8 +87,9 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
     recognitionRef.current = startListening({
       onInterim: (t) => setText(join(t)),
       onFinal: (t) => setText(join(t)),
-      onError: (message) => {
-        setError(message)
+      onError: (result) => {
+        if (result.steps) setMicBlockedSteps(result.steps)
+        else setError(result.message)
         setListening(false)
       },
       onEnd: () => setListening(false),
@@ -106,6 +106,7 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
     setLoading(true)
     setError('')
     setNotice('')
+    setMicBlockedSteps(null)
     try {
       const parsed = await parseFoodText(text.trim())
       setText('')
@@ -312,6 +313,17 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
 
       {error && <p className="text-sm text-red-500 dark:text-red-300 px-1">{error}</p>}
       {notice && <p className="text-sm text-slate-500 dark:text-slate-400 px-1">{notice}</p>}
+
+      {micBlockedSteps && (
+        <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/15 px-4 py-3">
+          <p className="text-sm font-medium text-red-700 dark:text-red-300">Microphone is blocked for this app</p>
+          <ol className="mt-1.5 flex flex-col gap-1 list-decimal list-inside text-sm text-red-600 dark:text-red-300/90">
+            {micBlockedSteps.map((step, i) => (
+              <li key={i}>{step}</li>
+            ))}
+          </ol>
+        </div>
+      )}
 
       {photoParsing && (
         <p className="text-sm text-slate-500 dark:text-slate-400 px-1">

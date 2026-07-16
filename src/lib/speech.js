@@ -6,14 +6,48 @@ export function isSpeechRecognitionSupported() {
   return typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition)
 }
 
-// Exact menu path differs by platform; give the real steps instead of a
-// generic "check your settings" that leaves the user hunting.
-export function micPermissionInstructions() {
-  const ua = navigator.userAgent
-  if (/iPhone|iPad|iPod/.test(ua)) {
-    return 'Open Settings, scroll to this browser (or this app if you installed it), turn on Microphone, then reload the page.'
+function isStandalone() {
+  return (
+    (typeof window !== 'undefined' && window.matchMedia?.('(display-mode: standalone)').matches) ||
+    window.navigator.standalone === true
+  )
+}
+
+// Installed home-screen apps have no address bar, so there's no lock icon to
+// tap. On Android an installed PWA (a WebAPK) is its own package as far as
+// the OS is concerned, so its microphone permission lives in Android's App
+// Info screen, not in Chrome's site settings. iOS PWAs still hand permission
+// control to Settings > the browser (or the app itself on newer iOS).
+export function micPermissionSteps() {
+  const iOS = /iPhone|iPad|iPod/.test(navigator.userAgent)
+  const standalone = isStandalone()
+
+  if (standalone && !iOS) {
+    return [
+      "Open your phone's Settings app (not this app).",
+      'Tap Apps, then find "Calories" (this app).',
+      'Tap Permissions, then Microphone.',
+      'Choose Allow.',
+      'Come back and reopen this app.',
+    ]
   }
-  return 'Tap the lock icon next to the address bar, open Permissions, set Microphone to Allow, then reload the page.'
+  if (standalone && iOS) {
+    return [
+      'Open the iPhone Settings app.',
+      'Scroll down to find this app in the list.',
+      'Turn on Microphone.',
+      'Reopen this app.',
+    ]
+  }
+  if (iOS) {
+    return ['Open Settings, then Safari (or your browser).', 'Turn on Microphone.', 'Reload this page.']
+  }
+  return [
+    'Tap the lock or info icon next to the address bar.',
+    'Open Permissions (or Site settings).',
+    'Set Microphone to Allow.',
+    'Reload this page.',
+  ]
 }
 
 // SpeechRecognition.start() doesn't reliably surface the native permission
@@ -33,7 +67,9 @@ const ERROR_MESSAGES = {
 }
 
 // onInterim(text) fires continuously while speaking so the input can show live
-// progress; onFinal(text) fires once when the user stops talking.
+// progress; onFinal(text) fires once when the user stops talking. onError
+// receives either { message } for an ordinary failure or { steps } when the
+// mic is blocked and needs a settings change.
 export function startListening({ onInterim, onFinal, onError, onEnd }) {
   const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition
   const recognition = new Ctor()
@@ -55,10 +91,10 @@ export function startListening({ onInterim, onFinal, onError, onEnd }) {
 
   recognition.onerror = (event) => {
     if (event.error === 'not-allowed') {
-      onError(`Microphone access is blocked for this site. ${micPermissionInstructions()}`)
+      onError({ steps: micPermissionSteps() })
       return
     }
-    onError(ERROR_MESSAGES[event.error] || 'Voice input failed. Try again or type it.')
+    onError({ message: ERROR_MESSAGES[event.error] || 'Voice input failed. Try again or type it.' })
   }
 
   recognition.onend = () => onEnd()
