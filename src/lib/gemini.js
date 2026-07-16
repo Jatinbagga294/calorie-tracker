@@ -148,11 +148,18 @@ async function callGeminiJSON(systemPrompt, contentsOrText, schema, modelChain =
   for (const model of modelChain) {
     if (exhaustedModels.has(model)) continue
 
-    const res = await fetch(`${endpoint(model)}?key=${API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
-    })
+    let res
+    try {
+      res = await fetch(`${endpoint(model)}?key=${API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      })
+    } catch {
+      // Browser-internal fetch failures ("Failed to fetch") must never reach
+      // the screen; same network for every model, so don't try the rest.
+      throw new Error('No connection. Check your internet and try again.')
+    }
 
     if (res.status === 429 || res.status === 404) {
       // Out of quota (or model retired) — move on to the next bucket. Only a
@@ -298,6 +305,27 @@ export async function parseFoodPhoto({ base64, mimeType, note, userContext }) {
     fiber: round1(item.fiber || 0),
     grams: Math.round(item.grams || 0),
   }))
+}
+
+// ---- Speech transcription ----
+
+const TRANSCRIPT_SCHEMA = {
+  type: 'object',
+  properties: { transcript: { type: 'string' } },
+  required: ['transcript'],
+}
+
+const TRANSCRIBE_PROMPT = `You transcribe short voice notes for a calorie tracking app. The person is
+saying what they ate, possibly mixing English with Hindi or other languages. Return the transcript
+in plain English (translate if needed), cleaned of filler words, keeping food names and quantities
+exactly as said. If there is no intelligible speech, return an empty transcript.`
+
+// Turns a short voice clip into text for the quick-add box. Fallback for when
+// live speech recognition is unavailable (installed-PWA Chrome bug).
+export async function transcribeSpeech({ base64, mimeType }) {
+  const contents = [{ role: 'user', parts: [{ inlineData: { mimeType, data: base64 } }] }]
+  const { transcript } = await callGeminiJSON(TRANSCRIBE_PROMPT, contents, TRANSCRIPT_SCHEMA, VISION_MODEL_CHAIN)
+  return (transcript || '').trim()
 }
 
 // Gets 2-4 personalized, goal-aware, numbers-only suggestions (no food recommendations).

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Loader2, ArrowUp, ScanBarcode, Camera, Mic, Square } from 'lucide-react'
-import { parseFoodText, parseFoodPhoto } from '../../lib/gemini'
+import { parseFoodText, parseFoodPhoto, transcribeSpeech } from '../../lib/gemini'
 import { searchProducts, lookupBarcode, looksLikeBrandedProduct } from '../../lib/openfoodfacts'
 import { getFoodHistoryContext } from '../../lib/recents'
 import { getPortionDefaults, getBiasFactors, recordCorrection } from '../../lib/corrections'
 import { compressImage } from '../../lib/image'
-import { isSpeechRecognitionSupported, startListening, requestMicAccess, micPermissionSteps } from '../../lib/speech'
+import { isSpeechRecognitionSupported, startListening, requestMicAccess } from '../../lib/speech'
+import { isRecordingSupported, startRecording } from '../../lib/audio'
 import BarcodeScanner from './BarcodeScanner'
 import ProductConfirmSheet from './ProductConfirmSheet'
 import PhotoConfirmSheet from './PhotoConfirmSheet'
@@ -26,13 +27,15 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
   const [product, setProduct] = useState(null)
   const [photoParsing, setPhotoParsing] = useState(false)
   const [photoItems, setPhotoItems] = useState(null)
-  const [listening, setListening] = useState(false)
-  const [requestingMic, setRequestingMic] = useState(false)
-  const [micBlockedSteps, setMicBlockedSteps] = useState(null)
+  // 'idle' | 'arming' (permission check) | 'listening' (live recognition) |
+  // 'recording' (clip fallback) | 'transcribing' (clip at Gemini)
+  const [voiceState, setVoiceState] = useState('idle')
   const fileInputRef = useRef(null)
+  const inputRef = useRef(null)
   const debounceRef = useRef(null)
   const searchSeq = useRef(0)
   const recognitionRef = useRef(null)
+  const recorderRef = useRef(null)
   const voiceBaseTextRef = useRef('')
 
   // Inline database suggestions while typing something that looks packaged.
@@ -50,7 +53,13 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
     return () => clearTimeout(debounceRef.current)
   }, [text])
 
-  useEffect(() => () => recognitionRef.current?.stop(), [])
+  useEffect(
+    () => () => {
+      recognitionRef.current?.stop()
+      recorderRef.current?.cancel()
+    },
+    [],
+  )
 
   function handleTextChange(e) {
     const value = e.target.value
@@ -59,41 +68,123 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
     if (!looksLikeBrandedProduct(value)) setSuggestions([])
   }
 
-  // Toggle mic: tapping again while listening stops early (recognition also
-  // auto-stops on a pause). Voice text is appended to whatever was typed.
-  // Mic access is requested explicitly first (via getUserMedia) because
-  // SpeechRecognition.start() alone doesn't reliably trigger the native
-  // permission prompt on every Android Chrome version.
-  async function toggleListening() {
-    if (listening) {
+  function joinVoice(transcript) {
+    const base = voiceBaseTextRef.current
+    return base ? `${base} ${transcript}` : transcript
+  }
+
+  // When the mic can't be used, the keyboard's own mic key works with zero
+  // permissions. One line, cause-neutral; never send anyone into settings.
+  // The focus is best-effort (mobile browsers won't open the keyboard from a
+  // late programmatic focus), so the copy says to tap the box.
+  function suggestKeyboardMic() {
+    inputRef.current?.focus()
+    setNotice('The mic did not work in the app this time. Tap the text box and use the mic key on your keyboard instead.')
+  }
+
+  // Voice input, layered so it never dead-ends:
+  // 1. Live recognition (free, shows words as you talk).
+  // 2. If the recognition service is broken but the mic is granted (installed
+  //    PWA Chrome bug), silently switch to recording a clip for Gemini.
+  // 3. If the mic is blocked entirely, open the keyboard and point at its mic
+  //    key. Mic access goes through getUserMedia first because
+  //    SpeechRecognition.start() alone doesn't reliably show the native
+  //    permission prompt on Android Chrome.
+  async function handleVoiceTap() {
+    if (voiceState === 'listening') {
       recognitionRef.current?.stop()
       return
     }
+    if (voiceState === 'recording') {
+      finishRecording()
+      return
+    }
+    if (voiceState !== 'idle') return
+
     setError('')
-    setMicBlockedSteps(null)
-    setRequestingMic(true)
+    setNotice('')
+    setVoiceState('arming')
     try {
       await requestMicAccess()
     } catch (err) {
-      setRequestingMic(false)
-      if (err.name === 'NotFoundError') setError('No microphone found on this device.')
-      else setMicBlockedSteps(await micPermissionSteps())
+      setVoiceState('idle')
+      if (err.name === 'NotFoundError') setError('No microphone found on this device. Type it instead.')
+      else if (err.name === 'NotReadableError') setError('The microphone is busy in another app. Close it and try again.')
+      else suggestKeyboardMic()
       return
     }
-    setRequestingMic(false)
+    // Browsers without live recognition (e.g. Firefox on Android) go straight
+    // to the clip recorder; same button, same result.
+    if (isSpeechRecognitionSupported()) beginRecognition()
+    else beginRecording()
+  }
+
+  function beginRecognition() {
     voiceBaseTextRef.current = text.trim()
-    setListening(true)
-    const join = (t) => (voiceBaseTextRef.current ? `${voiceBaseTextRef.current} ${t}` : t)
+    setVoiceState('listening')
     recognitionRef.current = startListening({
-      onInterim: (t) => setText(join(t)),
-      onFinal: (t) => setText(join(t)),
-      onError: (result) => {
-        if (result.steps) setMicBlockedSteps(result.steps)
-        else setError(result.message)
-        setListening(false)
+      onInterim: (t) => setText(joinVoice(t)),
+      onFinal: (t) => setText(joinVoice(t)),
+      onError: (kind) => {
+        if (kind === 'no-speech') {
+          setNotice("Didn't catch that. Try again a bit closer to the phone.")
+          setVoiceState('idle')
+        } else if (kind === 'service-broken') {
+          // Mic permission is fine; only the recognition service refused.
+          beginRecording()
+        } else {
+          setError('Voice input failed. Try again or type it.')
+          setVoiceState('idle')
+        }
       },
-      onEnd: () => setListening(false),
+      // Only reset if recognition is still the active mode; the recorder
+      // fallback may have taken over.
+      onEnd: () => setVoiceState((s) => (s === 'listening' ? 'idle' : s)),
     })
+  }
+
+  async function beginRecording() {
+    if (!isRecordingSupported()) {
+      setVoiceState('idle')
+      suggestKeyboardMic()
+      return
+    }
+    if (!navigator.onLine) {
+      setVoiceState('idle')
+      setError('You are offline. Voice input needs a connection.')
+      return
+    }
+    // Claim the state before the awaits so recognition's trailing end event
+    // can't reset to idle mid-takeover (and rapid taps can't double-start).
+    setVoiceState('recording')
+    try {
+      recorderRef.current = await startRecording({ onAutoStop: finishRecording })
+    } catch {
+      setVoiceState('idle')
+      suggestKeyboardMic()
+    }
+  }
+
+  async function finishRecording() {
+    const recorder = recorderRef.current
+    if (!recorder) return
+    recorderRef.current = null
+    setVoiceState('transcribing')
+    try {
+      const audio = await recorder.stop()
+      const transcript = audio ? await transcribeSpeech(audio) : ''
+      if (transcript) {
+        // Append to whatever is in the box now, not a stale snapshot; the
+        // user may have kept typing while transcription ran.
+        setText((current) => (current.trim() ? `${current.trim()} ${transcript}` : transcript))
+      } else {
+        setNotice("Didn't catch that. Try again a bit closer to the phone.")
+      }
+    } catch (err) {
+      setError(err.message || 'Could not make that out. Type it instead.')
+    } finally {
+      setVoiceState('idle')
+    }
   }
 
   async function submit(e) {
@@ -106,7 +197,6 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
     setLoading(true)
     setError('')
     setNotice('')
-    setMicBlockedSteps(null)
     try {
       const parsed = await parseFoodText(text.trim())
       setText('')
@@ -217,10 +307,17 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
       <form onSubmit={submit} className="flex flex-col gap-2">
         <div className="flex items-center gap-1 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 pl-4 pr-2 py-2 shadow-sm shadow-slate-900/[0.04] dark:shadow-none focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500">
           <input
+            ref={inputRef}
             type="text"
             value={text}
             onChange={handleTextChange}
-            placeholder={placeholder}
+            placeholder={
+              voiceState === 'listening'
+                ? 'Listening, talk now'
+                : voiceState === 'recording'
+                  ? 'Talk, then tap the square'
+                  : placeholder
+            }
             className="flex-1 min-w-0 min-h-11 bg-transparent outline-none text-base text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
             disabled={loading}
             aria-label="Describe what you ate"
@@ -235,22 +332,28 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
             aria-hidden
             tabIndex={-1}
           />
-          {isSpeechRecognitionSupported() && (
+          {(isSpeechRecognitionSupported() || isRecordingSupported()) && (
             <button
               type="button"
-              onClick={toggleListening}
-              disabled={loading || requestingMic}
-              aria-label={listening ? 'Stop voice input' : 'Log by voice'}
-              aria-pressed={listening}
+              onClick={handleVoiceTap}
+              disabled={loading}
+              aria-label={
+                voiceState === 'listening' || voiceState === 'recording'
+                  ? 'Stop voice input'
+                  : voiceState === 'idle'
+                    ? 'Log by voice'
+                    : 'Voice input is working'
+              }
+              aria-pressed={voiceState === 'listening' || voiceState === 'recording'}
               className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center transition-colors ${
-                listening
+                voiceState === 'listening' || voiceState === 'recording'
                   ? 'text-red-500 dark:text-red-300'
                   : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
               } disabled:opacity-30`}
             >
-              {requestingMic ? (
+              {voiceState === 'arming' || voiceState === 'transcribing' ? (
                 <Loader2 size={19} className="animate-spin" aria-hidden />
-              ) : listening ? (
+              ) : voiceState === 'listening' || voiceState === 'recording' ? (
                 <Square size={16} className="animate-pulse" aria-hidden fill="currentColor" />
               ) : (
                 <Mic size={19} aria-hidden />
@@ -260,7 +363,7 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={loading || photoParsing || listening || requestingMic}
+            disabled={loading || photoParsing || voiceState === 'listening' || voiceState === 'recording'}
             aria-label="Log with a photo"
             className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-30 transition-colors"
           >
@@ -269,7 +372,7 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
           <button
             type="button"
             onClick={() => setScanning(true)}
-            disabled={loading || lookingUp || listening || requestingMic}
+            disabled={loading || lookingUp || voiceState === 'listening' || voiceState === 'recording'}
             aria-label="Scan a barcode"
             className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-30 transition-colors"
           >
@@ -314,25 +417,13 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
       {error && <p className="text-sm text-red-500 dark:text-red-300 px-1">{error}</p>}
       {notice && <p className="text-sm text-slate-500 dark:text-slate-400 px-1">{notice}</p>}
 
-      {micBlockedSteps && (
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3">
-          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-            Use the mic on your keyboard instead
-          </p>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Tap the text box, then the mic key on your keyboard, and just talk. No setup needed.
-          </p>
-          <details className="mt-2">
-            <summary className="text-[13px] text-slate-400 dark:text-slate-500 cursor-pointer min-h-11 flex items-center">
-              Or fix this app's mic button
-            </summary>
-            <ol className="mt-1 flex flex-col gap-1 list-decimal list-inside text-[13px] text-slate-500 dark:text-slate-400">
-              {micBlockedSteps.map((step, i) => (
-                <li key={i}>{step}</li>
-              ))}
-            </ol>
-          </details>
-        </div>
+      {voiceState === 'recording' && (
+        <p className="text-sm text-slate-500 dark:text-slate-400 px-1">
+          Recording. Talk, then tap the square to finish.
+        </p>
+      )}
+      {voiceState === 'transcribing' && (
+        <p className="text-sm text-slate-500 dark:text-slate-400 px-1">Working out what you said.</p>
       )}
 
       {photoParsing && (
