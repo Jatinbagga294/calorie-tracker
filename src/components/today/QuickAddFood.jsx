@@ -315,13 +315,23 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
       {notice && <p className="text-sm text-slate-500 dark:text-slate-400 px-1">{notice}</p>}
 
       {micBlockedSteps && (
-        <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/15 px-4 py-3">
-          <p className="text-sm font-medium text-red-700 dark:text-red-300">Microphone is blocked for this app</p>
-          <ol className="mt-1.5 flex flex-col gap-1 list-decimal list-inside text-sm text-red-600 dark:text-red-300/90">
-            {micBlockedSteps.map((step, i) => (
-              <li key={i}>{step}</li>
-            ))}
-          </ol>
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3">
+          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+            Use the mic on your keyboard instead
+          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Tap the text box, then the mic key on your keyboard, and just talk. No setup needed.
+          </p>
+          <details className="mt-2">
+            <summary className="text-[13px] text-slate-400 dark:text-slate-500 cursor-pointer min-h-11 flex items-center">
+              Or fix this app's mic button
+            </summary>
+            <ol className="mt-1 flex flex-col gap-1 list-decimal list-inside text-[13px] text-slate-500 dark:text-slate-400">
+              {micBlockedSteps.map((step, i) => (
+                <li key={i}>{step}</li>
+              ))}
+            </ol>
+          </details>
         </div>
       )}
 
