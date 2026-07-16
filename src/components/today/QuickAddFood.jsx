@@ -5,7 +5,7 @@ import { searchProducts, lookupBarcode, looksLikeBrandedProduct } from '../../li
 import { getFoodHistoryContext } from '../../lib/recents'
 import { getPortionDefaults, getBiasFactors, recordCorrection } from '../../lib/corrections'
 import { compressImage } from '../../lib/image'
-import { isSpeechRecognitionSupported, startListening } from '../../lib/speech'
+import { isSpeechRecognitionSupported, startListening, requestMicAccess, micPermissionInstructions } from '../../lib/speech'
 import BarcodeScanner from './BarcodeScanner'
 import ProductConfirmSheet from './ProductConfirmSheet'
 import PhotoConfirmSheet from './PhotoConfirmSheet'
@@ -27,6 +27,7 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
   const [photoParsing, setPhotoParsing] = useState(false)
   const [photoItems, setPhotoItems] = useState(null)
   const [listening, setListening] = useState(false)
+  const [requestingMic, setRequestingMic] = useState(false)
   const fileInputRef = useRef(null)
   const debounceRef = useRef(null)
   const searchSeq = useRef(0)
@@ -59,12 +60,28 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
 
   // Toggle mic: tapping again while listening stops early (recognition also
   // auto-stops on a pause). Voice text is appended to whatever was typed.
-  function toggleListening() {
+  // Mic access is requested explicitly first (via getUserMedia) because
+  // SpeechRecognition.start() alone doesn't reliably trigger the native
+  // permission prompt on every Android Chrome version.
+  async function toggleListening() {
     if (listening) {
       recognitionRef.current?.stop()
       return
     }
     setError('')
+    setRequestingMic(true)
+    try {
+      await requestMicAccess()
+    } catch (err) {
+      setRequestingMic(false)
+      setError(
+        err.name === 'NotFoundError'
+          ? 'No microphone found on this device.'
+          : `Microphone access is blocked for this site. ${micPermissionInstructions()}`,
+      )
+      return
+    }
+    setRequestingMic(false)
     voiceBaseTextRef.current = text.trim()
     setListening(true)
     const join = (t) => (voiceBaseTextRef.current ? `${voiceBaseTextRef.current} ${t}` : t)
@@ -221,7 +238,7 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
             <button
               type="button"
               onClick={toggleListening}
-              disabled={loading}
+              disabled={loading || requestingMic}
               aria-label={listening ? 'Stop voice input' : 'Log by voice'}
               aria-pressed={listening}
               className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center transition-colors ${
@@ -230,7 +247,9 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
                   : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
               } disabled:opacity-30`}
             >
-              {listening ? (
+              {requestingMic ? (
+                <Loader2 size={19} className="animate-spin" aria-hidden />
+              ) : listening ? (
                 <Square size={16} className="animate-pulse" aria-hidden fill="currentColor" />
               ) : (
                 <Mic size={19} aria-hidden />
@@ -240,7 +259,7 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={loading || photoParsing || listening}
+            disabled={loading || photoParsing || listening || requestingMic}
             aria-label="Log with a photo"
             className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-30 transition-colors"
           >
@@ -249,7 +268,7 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
           <button
             type="button"
             onClick={() => setScanning(true)}
-            disabled={loading || lookingUp || listening}
+            disabled={loading || lookingUp || listening || requestingMic}
             aria-label="Scan a barcode"
             className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-30 transition-colors"
           >
