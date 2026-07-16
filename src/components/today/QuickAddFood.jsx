@@ -77,7 +77,7 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
     } catch (err) {
       setRequestingMic(false)
       if (err.name === 'NotFoundError') setError('No microphone found on this device.')
-      else setMicBlockedSteps(micPermissionSteps())
+      else setMicBlockedSteps(await micPermissionSteps())
       return
     }
     setRequestingMic(false)

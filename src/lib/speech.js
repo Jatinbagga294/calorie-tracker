@@ -13,34 +13,57 @@ function isStandalone() {
   )
 }
 
-// Installed home-screen apps have no address bar, so there's no lock icon to
-// tap. On Android the installed app does not hold its own mic permission
-// either (Android's App Info shows none) — it borrows the permission Chrome
-// has for this website. So the fix is to open the site in Chrome once and
-// allow the mic there; the installed app inherits it. iOS PWAs hand
-// permission control to Settings > the browser (or the app on newer iOS).
-export function micPermissionSteps() {
+// The web-level permission state tells us exactly WHERE the mic is stuck:
+// 'prompt' means the site was never even asked, so the block is at the OS
+// level (Chrome itself has no Android mic permission and can't show the
+// popup); 'denied' means the site itself was blocked in the browser;
+// 'granted' means permission is fine and the mic is busy or broken.
+async function micPermissionState() {
+  try {
+    const status = await navigator.permissions.query({ name: 'microphone' })
+    return status.state
+  } catch {
+    return 'unknown'
+  }
+}
+
+// Installed home-screen apps have no address bar and hold no Android
+// permissions of their own — they ride on the browser's permission for this
+// site, so recovery steps have to route through the browser or the OS.
+export async function micPermissionSteps() {
   const iOS = /iPhone|iPad|iPod/.test(navigator.userAgent)
   const standalone = isStandalone()
+  const state = await micPermissionState()
 
-  if (standalone && !iOS) {
+  if (iOS) {
+    return standalone
+      ? ['Open the iPhone Settings app.', 'Scroll down to find this app in the list.', 'Turn on Microphone.', 'Reopen this app.']
+      : ['Open Settings, then Safari (or your browser).', 'Turn on Microphone.', 'Reload this page.']
+  }
+
+  if (state === 'granted') {
+    return ['Another app may be holding the microphone. Close other apps that could be using it, then try again.']
+  }
+
+  // Never prompted: Android is blocking the popup because Chrome itself has
+  // no microphone permission. Fixing that is the whole fix; after it, the
+  // prompt can appear right here, even inside the installed app.
+  if (state === 'prompt') {
+    return [
+      "Open your phone's Settings, then Apps, then Chrome.",
+      'Tap Permissions, then Microphone, and choose Allow.',
+      'Come back and tap the mic again. This time a popup will ask, choose Allow.',
+    ]
+  }
+
+  // Site-level block in the browser.
+  if (standalone) {
     return [
       `Open Chrome and go to ${location.hostname}`,
-      'Tap the mic icon there and choose Allow when Chrome asks.',
-      'No popup? Chrome itself may lack mic access: phone Settings, Apps, Chrome, Permissions, Microphone, Allow. Then try the mic again.',
+      'Tap the lock icon by the address bar, then Permissions.',
+      'Set Microphone to Allow.',
       'Close and reopen this app. It uses the same permission as Chrome.',
     ]
-  }
-  if (standalone && iOS) {
-    return [
-      'Open the iPhone Settings app.',
-      'Scroll down to find this app in the list.',
-      'Turn on Microphone.',
-      'Reopen this app.',
-    ]
-  }
-  if (iOS) {
-    return ['Open Settings, then Safari (or your browser).', 'Turn on Microphone.', 'Reload this page.']
   }
   return [
     'Tap the lock or info icon next to the address bar.',
@@ -89,9 +112,9 @@ export function startListening({ onInterim, onFinal, onError, onEnd }) {
     else onInterim(transcript.trim())
   }
 
-  recognition.onerror = (event) => {
+  recognition.onerror = async (event) => {
     if (event.error === 'not-allowed') {
-      onError({ steps: micPermissionSteps() })
+      onError({ steps: await micPermissionSteps() })
       return
     }
     onError({ message: ERROR_MESSAGES[event.error] || 'Voice input failed. Try again or type it.' })
