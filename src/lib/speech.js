@@ -14,21 +14,21 @@ function isStandalone() {
 }
 
 // Installed home-screen apps have no address bar, so there's no lock icon to
-// tap. On Android an installed PWA (a WebAPK) is its own package as far as
-// the OS is concerned, so its microphone permission lives in Android's App
-// Info screen, not in Chrome's site settings. iOS PWAs still hand permission
-// control to Settings > the browser (or the app itself on newer iOS).
+// tap. On Android the installed app does not hold its own mic permission
+// either (Android's App Info shows none) — it borrows the permission Chrome
+// has for this website. So the fix is to open the site in Chrome once and
+// allow the mic there; the installed app inherits it. iOS PWAs hand
+// permission control to Settings > the browser (or the app on newer iOS).
 export function micPermissionSteps() {
   const iOS = /iPhone|iPad|iPod/.test(navigator.userAgent)
   const standalone = isStandalone()
 
   if (standalone && !iOS) {
     return [
-      "Open your phone's Settings app (not this app).",
-      'Tap Apps, then find "Calories" (this app).',
-      'Tap Permissions, then Microphone.',
-      'Choose Allow.',
-      'Come back and reopen this app.',
+      `Open Chrome and go to ${location.hostname}`,
+      'Tap the mic icon there and choose Allow when Chrome asks.',
+      "If no popup shows: tap the lock icon by the address bar, then Permissions, set Microphone to Allow.",
+      'Close and reopen this app. It uses the same permission as Chrome.',
     ]
   }
   if (standalone && iOS) {
