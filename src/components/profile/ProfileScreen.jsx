@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { getProfile, updateProfile } from '../../lib/storage'
 import { ACTIVITY_LEVELS, GOALS, calculateAllTargets } from '../../lib/calculations'
 import { getThemePreference, setThemePreference } from '../../lib/theme'
+import { downloadBackup, readBackupFile, applyBackup } from '../../lib/backup'
 import { card, sectionLabel, pageTitle, pageSubtitle } from '../../lib/ui'
 
 const THEME_OPTIONS = [
@@ -36,6 +37,99 @@ function ThemeToggle() {
         </button>
       ))}
     </div>
+  )
+}
+
+const dataButton =
+  'min-h-11 px-4 rounded-xl text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors'
+
+// Download everything as one file; restore replaces this device's data after
+// an explicit confirm that shows what the chosen file contains.
+function BackupSection() {
+  const fileRef = useRef(null)
+  const [pending, setPending] = useState(null) // { parsed, summary }
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+
+  function exportNow() {
+    setError('')
+    try {
+      downloadBackup()
+      setMessage('Backup saved to your downloads.')
+    } catch {
+      setError('Could not create the backup. Try again.')
+    }
+  }
+
+  async function pickFile(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setError('')
+    setMessage('')
+    try {
+      setPending(await readBackupFile(file))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  function restore() {
+    try {
+      applyBackup(pending.parsed)
+      window.location.reload()
+    } catch {
+      setPending(null)
+      setError('Restore failed. Nothing was changed that a reload will not fix. Try the file again.')
+    }
+  }
+
+  const exportedOn = pending?.summary.exportedAt ? new Date(pending.summary.exportedAt).toLocaleDateString() : null
+
+  return (
+    <section className={`${card} p-4 flex flex-col gap-3`}>
+      <h2 className={sectionLabel}>Your data</h2>
+      <p className="text-sm text-slate-500 dark:text-slate-400">
+        Everything is stored on this phone. Download a backup before clearing the app or switching phones, then
+        restore it to pick up where you left off.
+      </p>
+
+      {!pending ? (
+        <div className="flex gap-2">
+          <button type="button" onClick={exportNow} className={`flex-1 ${dataButton}`}>
+            Download backup
+          </button>
+          <button type="button" onClick={() => fileRef.current?.click()} className={`flex-1 ${dataButton}`}>
+            Restore backup
+          </button>
+          <input ref={fileRef} type="file" accept=".json,application/json" onChange={pickFile} className="hidden" aria-hidden tabIndex={-1} />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-slate-700 dark:text-slate-200">
+            {exportedOn ? `Backup from ${exportedOn}` : 'Backup file'} with {pending.summary.days}{' '}
+            {pending.summary.days === 1 ? 'day' : 'days'} of food logs and {pending.summary.weighIns}{' '}
+            {pending.summary.weighIns === 1 ? 'weigh-in' : 'weigh-ins'}. Restoring replaces everything currently on
+            this phone.
+          </p>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setPending(null)} className={`flex-1 ${dataButton}`}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={restore}
+              className="flex-1 min-h-11 px-4 rounded-xl text-sm font-semibold bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900"
+            >
+              Restore
+            </button>
+          </div>
+        </div>
+      )}
+
+      {message && <p className="text-sm text-slate-500 dark:text-slate-400">{message}</p>}
+      {error && <p className="text-sm text-red-500 dark:text-red-300">{error}</p>}
+    </section>
   )
 }
 
@@ -106,6 +200,8 @@ export default function ProfileScreen() {
         <h2 className={sectionLabel}>Appearance</h2>
         <ThemeToggle />
       </section>
+
+      <BackupSection />
 
       <section className={`${card} p-4 flex flex-col gap-4`}>
         <h2 className={sectionLabel}>Personal info</h2>
