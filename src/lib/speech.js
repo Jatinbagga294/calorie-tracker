@@ -27,7 +27,7 @@ export function micPermissionSteps() {
     return [
       `Open Chrome and go to ${location.hostname}`,
       'Tap the mic icon there and choose Allow when Chrome asks.',
-      "If no popup shows: tap the lock icon by the address bar, then Permissions, set Microphone to Allow.",
+      'No popup? Chrome itself may lack mic access: phone Settings, Apps, Chrome, Permissions, Microphone, Allow. Then try the mic again.',
       'Close and reopen this app. It uses the same permission as Chrome.',
     ]
   }
