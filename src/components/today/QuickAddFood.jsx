@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { Loader2, ArrowUp, ScanBarcode, Camera } from 'lucide-react'
+import { Loader2, ArrowUp, ScanBarcode, Camera, Mic, Square } from 'lucide-react'
 import { parseFoodText, parseFoodPhoto } from '../../lib/gemini'
 import { searchProducts, lookupBarcode, looksLikeBrandedProduct } from '../../lib/openfoodfacts'
 import { getFoodHistoryContext } from '../../lib/recents'
 import { getPortionDefaults, getBiasFactors, recordCorrection } from '../../lib/corrections'
 import { compressImage } from '../../lib/image'
+import { isSpeechRecognitionSupported, startListening } from '../../lib/speech'
 import BarcodeScanner from './BarcodeScanner'
 import ProductConfirmSheet from './ProductConfirmSheet'
 import PhotoConfirmSheet from './PhotoConfirmSheet'
@@ -25,9 +26,12 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
   const [product, setProduct] = useState(null)
   const [photoParsing, setPhotoParsing] = useState(false)
   const [photoItems, setPhotoItems] = useState(null)
+  const [listening, setListening] = useState(false)
   const fileInputRef = useRef(null)
   const debounceRef = useRef(null)
   const searchSeq = useRef(0)
+  const recognitionRef = useRef(null)
+  const voiceBaseTextRef = useRef('')
 
   // Inline database suggestions while typing something that looks packaged.
   useEffect(() => {
@@ -44,11 +48,35 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
     return () => clearTimeout(debounceRef.current)
   }, [text])
 
+  useEffect(() => () => recognitionRef.current?.stop(), [])
+
   function handleTextChange(e) {
     const value = e.target.value
     setText(value)
     searchSeq.current++
     if (!looksLikeBrandedProduct(value)) setSuggestions([])
+  }
+
+  // Toggle mic: tapping again while listening stops early (recognition also
+  // auto-stops on a pause). Voice text is appended to whatever was typed.
+  function toggleListening() {
+    if (listening) {
+      recognitionRef.current?.stop()
+      return
+    }
+    setError('')
+    voiceBaseTextRef.current = text.trim()
+    setListening(true)
+    const join = (t) => (voiceBaseTextRef.current ? `${voiceBaseTextRef.current} ${t}` : t)
+    recognitionRef.current = startListening({
+      onInterim: (t) => setText(join(t)),
+      onFinal: (t) => setText(join(t)),
+      onError: (message) => {
+        setError(message)
+        setListening(false)
+      },
+      onEnd: () => setListening(false),
+    })
   }
 
   async function submit(e) {
@@ -189,10 +217,30 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
             aria-hidden
             tabIndex={-1}
           />
+          {isSpeechRecognitionSupported() && (
+            <button
+              type="button"
+              onClick={toggleListening}
+              disabled={loading}
+              aria-label={listening ? 'Stop voice input' : 'Log by voice'}
+              aria-pressed={listening}
+              className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center transition-colors ${
+                listening
+                  ? 'text-red-500 dark:text-red-300'
+                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
+              } disabled:opacity-30`}
+            >
+              {listening ? (
+                <Square size={16} className="animate-pulse" aria-hidden fill="currentColor" />
+              ) : (
+                <Mic size={19} aria-hidden />
+              )}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={loading || photoParsing}
+            disabled={loading || photoParsing || listening}
             aria-label="Log with a photo"
             className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-30 transition-colors"
           >
@@ -201,7 +249,7 @@ export default function QuickAddFood({ onLogged, onLoggedMany, placeholder = 'Wh
           <button
             type="button"
             onClick={() => setScanning(true)}
-            disabled={loading || lookingUp}
+            disabled={loading || lookingUp || listening}
             aria-label="Scan a barcode"
             className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-30 transition-colors"
           >
